@@ -1,0 +1,284 @@
+// ==========================
+// Generator & Datasource
+// ==========================
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ==========================
+// Enums
+// ==========================
+enum UserRole {
+  SEEKER
+  EMPLOYER
+}
+
+enum AccountStatus {
+  PENDING
+  ACTIVE
+  SUSPENDED
+  DELETED
+}
+
+enum TokenType {
+  EMAIL_VERIFICATION
+  PASSWORD_RESET
+  LOGIN_2FA
+}
+
+enum ProviderType {
+  GOOGLE
+  GITHUB
+}
+
+enum CompanySize {
+  SIZE_1_10
+  SIZE_11_50
+  SIZE_51_200
+  SIZE_201_500
+  SIZE_500_PLUS
+}
+
+enum KYCStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+// ==========================
+// Core Models
+// ==========================
+model User {
+  id              BigInt        @id @default(dbgenerated("floor(random()*1000000000+1000000000)"))
+  uniqueKey       String        @unique @default(uuid())
+  email           String        @unique
+  password        String?
+  fullName        String
+  phone           String?       @unique
+  role            UserRole
+  isVerified      Boolean       @default(false)
+  emailVerifiedAt DateTime?
+  status          AccountStatus @default(PENDING)
+  lastLogin       DateTime?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  deletedAt       DateTime?
+  refreshToken    String?
+
+  jobSeeker JobSeeker?
+  employer  Employer?
+  providers UserProvider[]
+  tokens    Token[]
+}
+
+// ==========================
+// Role Specific Profiles
+// ==========================
+model JobSeeker {
+  id        BigInt @id @default(dbgenerated("floor(random()*1000000000+1000000000)"))
+  uniqueKey String @unique @default(uuid())
+  userId    BigInt @unique
+  user      User   @relation(fields: [userId], references: [id])
+
+  bio             String?
+  location        String?
+  profileImage    String?
+  github          String?
+  linkedin        String?
+  personalWebsite String?
+
+  skills         JobSeekerSkill[]
+  resumes        JobSeekerResume[]
+  experiences    Experience[]
+  education      Education[]
+  certifications Certification[]
+}
+
+model Employer {
+  id        BigInt @id @default(dbgenerated("floor(random()*1000000000+1000000000)"))
+  uniqueKey String @unique @default(uuid())
+  userId    BigInt @unique
+  user      User   @relation(fields: [userId], references: [id])
+
+  companyName    String
+  slug           String  @unique
+  companyLogo    String?
+  bannerUrl      String?
+  companyWebsite String?
+
+  website     String
+  industry    String
+  companySize CompanySize
+  foundedYear Int?
+  location    String
+
+  about   String
+  mission String?
+  vision  String?
+  values  String[]
+
+  linkedIn   String?
+  twitter    String?
+  facebook   String?
+  instagram  String?
+  youtube    String?
+  glassdoor  String?
+  crunchbase String?
+
+  contactName        String
+  contactEmail       String
+  contactPhone       String?
+  contactDesignation String?
+
+  perksAndBenefits  String[]
+  hiringProcess     String?
+  remoteFriendly    Boolean?
+  teamSizeInTech    Int?
+  cultureHighlights String[]
+
+  isVerified    Boolean @default(false)
+  isActive      Boolean @default(true)
+  flaggedReason String?
+
+  kycs EmployerKYC[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ==========================
+// Employer KYC
+// ==========================
+model EmployerKYC {
+  id         BigInt   @id @default(dbgenerated("floor(random()*1000000000+1000000000)"))
+  uniqueKey  String   @unique @default(uuid())
+  employerId BigInt
+  employer   Employer @relation(fields: [employerId], references: [id])
+
+  panCardUrl           String?
+  incorporationCertUrl String?
+  gstCertUrl           String?
+  otherDocs            String[]
+
+  status          KYCStatus @default(PENDING)
+  reviewedBy      BigInt?
+  reviewedAt      DateTime?
+  remarks         String?
+  rejectionReason String?
+
+  employerAcknowledged Boolean @default(false)
+
+  attemptNumber Int           @default(1)
+  previousKycId BigInt?
+  previousKyc   EmployerKYC?  @relation("PreviousKYC", fields: [previousKycId], references: [id])
+  nextKycs      EmployerKYC[] @relation("PreviousKYC")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ==========================
+// Skills (Many-to-Many)
+// ==========================
+model Skill {
+  id      BigInt           @id @default(dbgenerated("floor(random()*1000000000+1000000000)"))
+  name    String           @unique
+  seekers JobSeekerSkill[]
+}
+
+model JobSeekerSkill {
+  id          BigInt @id @default(dbgenerated("floor(random()*1000000000+1000000000)"))
+  jobSeekerId BigInt
+  skillId     BigInt
+
+  jobSeeker JobSeeker @relation(fields: [jobSeekerId], references: [id])
+  skill     Skill     @relation(fields: [skillId], references: [id])
+}
+
+// ==========================
+// Job Seeker Detailed Models
+// ==========================
+model JobSeekerResume {
+  id          BigInt   @id @default(dbgenerated("floor(random()*1000000000+1000000000)"))
+  uniqueKey   String   @unique @default(uuid())
+  jobSeekerId BigInt
+  url         String
+  fileName    String
+  uploadedAt  DateTime @default(now())
+
+  jobSeeker JobSeeker @relation(fields: [jobSeekerId], references: [id])
+}
+
+model Experience {
+  id          BigInt    @id @default(dbgenerated("floor(random()*1000000000+1000000000)"))
+  uniqueKey   String    @unique @default(uuid())
+  jobSeekerId BigInt
+  company     String
+  title       String
+  startDate   DateTime
+  endDate     DateTime?
+  description String?
+
+  jobSeeker JobSeeker @relation(fields: [jobSeekerId], references: [id])
+}
+
+model Education {
+  id          BigInt    @id @default(dbgenerated("floor(random()*1000000000+1000000000)"))
+  uniqueKey   String    @unique @default(uuid())
+  jobSeekerId BigInt
+  degree      String
+  institution String
+  startDate   DateTime
+  endDate     DateTime?
+  description String?
+
+  jobSeeker JobSeeker @relation(fields: [jobSeekerId], references: [id])
+}
+
+model Certification {
+  id            BigInt    @id @default(dbgenerated("floor(random()*1000000000+1000000000)"))
+  uniqueKey     String    @unique @default(uuid())
+  jobSeekerId   BigInt
+  name          String
+  organization  String
+  issueDate     DateTime
+  expiryDate    DateTime?
+  credentialId  String?
+  credentialUrl String?
+
+  jobSeeker JobSeeker @relation(fields: [jobSeekerId], references: [id])
+}
+
+// ==========================
+// OAuth Providers
+// ==========================
+model UserProvider {
+  id         BigInt       @id @default(dbgenerated("floor(random()*1000000000+1000000000)"))
+  uniqueKey  String       @unique @default(uuid())
+  provider   ProviderType
+  providerId String
+  userId     BigInt
+  user       User         @relation(fields: [userId], references: [id])
+
+  createdAt DateTime @default(now())
+}
+
+// ==========================
+// Tokens (Verification, Reset, 2FA)
+// ==========================
+model Token {
+  id        BigInt    @id @default(dbgenerated("floor(random()*1000000000+1000000000)"))
+  uniqueKey String    @unique @default(uuid())
+  token     String    @unique
+  type      TokenType
+  userId    BigInt
+  user      User      @relation(fields: [userId], references: [id])
+  expiresAt DateTime
+  createdAt DateTime  @default(now())
+  usedAt    DateTime?
+}
