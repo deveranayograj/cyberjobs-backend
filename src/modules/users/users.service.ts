@@ -129,6 +129,8 @@ export class UsersService {
             isVerified: false,
             isActive: true,
             flaggedReason: null,
+            onboardingStep: 'EMAIL_VERIFIED', // ✅ new
+            lastVisitedStep: null, // ✅ new
           },
         });
       }

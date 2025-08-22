@@ -4,7 +4,8 @@ import { UsersModule } from './modules/users/users.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { LoggerModule } from './common/logger/logger.module';
 import { JobSeekerModule } from './modules/job-seeker/job-seeker.module';
-import { RedisModule } from './common/redis/redis.module'; // ✅ Import RedisModule
+import { EmployerModule } from './modules/employer/employer.module'; // ✅ Import EmployerModule
+import { RedisModule } from './common/redis/redis.module';
 
 @Module({
   imports: [
@@ -13,6 +14,7 @@ import { RedisModule } from './common/redis/redis.module'; // ✅ Import RedisMo
     UsersModule,
     AuthModule,
     JobSeekerModule, // ✅ JobSeeker routes
+    EmployerModule, // ✅ Employer routes
     RedisModule, // ✅ Add RedisModule here
   ],
 })

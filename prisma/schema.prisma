@@ -50,6 +50,14 @@ enum KYCStatus {
   REJECTED
 }
 
+enum EmployerOnboardingStep {
+  EMAIL_VERIFIED // Employer has verified email
+  SETUP_STARTED // Employer started filling company setup
+  SETUP_COMPLETE // Company setup completed
+  KYC_PENDING // KYC uploaded, pending verification
+  VERIFIED // Fully verified
+}
+
 // ==========================
 // Core Models
 // ==========================
@@ -144,6 +152,10 @@ model Employer {
   isVerified    Boolean @default(false)
   isActive      Boolean @default(true)
   flaggedReason String?
+
+  // Onboarding tracking
+  onboardingStep  EmployerOnboardingStep? @default(EMAIL_VERIFIED)
+  lastVisitedStep EmployerOnboardingStep?
 
   kycs EmployerKYC[]
 

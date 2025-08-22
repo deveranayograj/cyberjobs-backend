@@ -16,6 +16,9 @@ CREATE TYPE "public"."CompanySize" AS ENUM ('SIZE_1_10', 'SIZE_11_50', 'SIZE_51_
 -- CreateEnum
 CREATE TYPE "public"."KYCStatus" AS ENUM ('PENDING', 'APPROVED', 'REJECTED');
 
+-- CreateEnum
+CREATE TYPE "public"."EmployerOnboardingStep" AS ENUM ('EMAIL_VERIFIED', 'SETUP_STARTED', 'SETUP_COMPLETE', 'KYC_PENDING', 'VERIFIED');
+
 -- CreateTable
 CREATE TABLE "public"."User" (
     "id" BIGINT NOT NULL DEFAULT floor(random()*1000000000+1000000000),
@@ -61,6 +64,7 @@ CREATE TABLE "public"."Employer" (
     "slug" TEXT NOT NULL,
     "companyLogo" TEXT,
     "bannerUrl" TEXT,
+    "companyWebsite" TEXT,
     "website" TEXT NOT NULL,
     "industry" TEXT NOT NULL,
     "companySize" "public"."CompanySize" NOT NULL,
@@ -89,6 +93,8 @@ CREATE TABLE "public"."Employer" (
     "isVerified" BOOLEAN NOT NULL DEFAULT false,
     "isActive" BOOLEAN NOT NULL DEFAULT true,
     "flaggedReason" TEXT,
+    "onboardingStep" "public"."EmployerOnboardingStep" DEFAULT 'EMAIL_VERIFIED',
+    "lastVisitedStep" "public"."EmployerOnboardingStep",
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 

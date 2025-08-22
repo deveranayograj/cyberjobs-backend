@@ -9,6 +9,8 @@ import bcrypt from 'bcryptjs';
 import { User, UserRole } from '@prisma/client';
 import { Response } from 'express';
 import { RedisService } from '../../common/redis/redis.service';
+import { JWT_CONFIG } from '../../common/config/jwt.config';
+import { PrismaService } from 'src/prisma/prisma.service';
 
 interface JwtPayload {
   sub: string;
@@ -20,12 +22,10 @@ interface JwtPayload {
 export class AuthService {
   constructor(
     private readonly usersService: UsersService,
+    private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
     private readonly redisService: RedisService,
   ) {}
-
-  private readonly accessTokenExpiry = '15m';
-  private readonly refreshTokenExpiry = '7d';
 
   /** Deep serialize object to convert all BigInt values to strings */
   private deepSerialize(obj: any): any {
@@ -48,18 +48,12 @@ export class AuthService {
       email: user.email,
       role: user.role,
     };
-    return this.jwtService.sign(payload, {
-      secret: process.env.JWT_ACCESS_SECRET,
-      expiresIn: this.accessTokenExpiry,
-    });
+    return this.jwtService.sign(payload, JWT_CONFIG.access);
   }
 
   private generateRefreshToken(user: User) {
     const payload = { sub: user.id.toString() };
-    return this.jwtService.sign(payload, {
-      secret: process.env.JWT_REFRESH_SECRET,
-      expiresIn: this.refreshTokenExpiry,
-    });
+    return this.jwtService.sign(payload, JWT_CONFIG.refresh);
   }
 
   async login(email: string, password: string, res: Response) {
@@ -123,12 +117,33 @@ export class AuthService {
     return { accessToken, user: this.deepSerialize(user) };
   }
 
+  // Only showing updated / added methods
   async verifyEmail(token: string) {
     const user = await this.usersService.verifyUserByToken(token);
-    return {
-      message: 'Email verified successfully',
-      userId: user.id.toString(),
-    };
+
+    let redirectUrl = '/dashboard';
+    if (user.role === UserRole.EMPLOYER) {
+      const employer = await this.prisma.employer.findUnique({
+        where: { userId: user.id },
+      });
+      switch (employer.onboardingStep) {
+        case 'EMAIL_VERIFIED':
+        case 'SETUP_STARTED':
+          redirectUrl = '/employer/setup';
+          break;
+        case 'SETUP_COMPLETE':
+          redirectUrl = '/employer/kyc';
+          break;
+        case 'KYC_PENDING':
+          redirectUrl = '/employer/kyc-status';
+          break;
+        case 'VERIFIED':
+          redirectUrl = '/employer/dashboard';
+          break;
+      }
+    }
+
+    return { message: 'Email verified successfully', redirectUrl };
   }
 
   async refreshToken(refreshToken: string, res: Response) {
@@ -136,7 +151,7 @@ export class AuthService {
 
     try {
       const payload = this.jwtService.verify<{ sub: string }>(refreshToken, {
-        secret: process.env.JWT_REFRESH_SECRET,
+        secret: JWT_CONFIG.refresh.secret,
       });
       const user = await this.usersService.findById(BigInt(payload.sub));
       if (!user) throw new UnauthorizedException('User not found');
@@ -158,7 +173,7 @@ export class AuthService {
       });
 
       return { accessToken: newAccessToken, user: this.deepSerialize(user) };
-    } catch (err) {
+    } catch {
       throw new UnauthorizedException('Invalid refresh token');
     }
   }
