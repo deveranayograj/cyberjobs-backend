@@ -7,7 +7,7 @@ import {
   NotFoundException,
   InternalServerErrorException,
 } from '@nestjs/common';
-import { PrismaService } from '../../prisma/prisma.service';
+import { PrismaService } from '@prisma/prisma.service';
 import {
   JobSeeker,
   JobSeekerResume,
@@ -17,28 +17,28 @@ import {
   Certification,
 } from '@prisma/client';
 
-import { UpdateJobSeekerDto } from './dtos/overview/update-job-seeker.dto';
-import { UpdateLinksDto } from './dtos/overview/update-links.dto';
+import { UpdateJobSeekerDto } from '@modules/job-seeker/dtos/overview/update-job-seeker.dto';
+import { UpdateLinksDto } from '@modules/job-seeker/dtos/overview/update-links.dto';
 
-import { AddSkillsDto } from './dtos/skills/add-skills.dto';
-import { RemoveSkillsDto } from './dtos/skills/remove-skills.dto';
+import { AddSkillsDto } from '@modules/job-seeker/dtos/skills/add-skills.dto';
+import { RemoveSkillsDto } from '@modules/job-seeker/dtos/skills/remove-skills.dto';
 
-import { UploadResumeDto } from './dtos/resumes/upload-resume.dto';
+import { UploadResumeDto } from '@modules/job-seeker/dtos/resumes/upload-resume.dto';
 
-import { AddExperienceDto } from './dtos/experience/add-experience.dto';
-import { RemoveExperienceDto } from './dtos/experience/remove-experience.dto';
-import { UpdateExperienceDto } from './dtos/experience/update-experience.dto';
+import { AddExperienceDto } from '@modules/job-seeker/dtos/experience/add-experience.dto';
+import { RemoveExperienceDto } from '@modules/job-seeker/dtos/experience/remove-experience.dto';
+import { UpdateExperienceDto } from '@modules/job-seeker/dtos/experience/update-experience.dto';
 
-import { AddEducationDto } from './dtos/education/add-education.dto';
-import { RemoveEducationDto } from './dtos/education/remove-education.dto';
-import { UpdateEducationDto } from './dtos/education/update-education.dto';
+import { AddEducationDto } from '@modules/job-seeker/dtos/education/add-education.dto';
+import { RemoveEducationDto } from '@modules/job-seeker/dtos/education/remove-education.dto';
+import { UpdateEducationDto } from '@modules/job-seeker/dtos/education/update-education.dto';
 
-import { AddCertificationDto } from './dtos/certifications/add-certification.dto';
-import { RemoveCertificationDto } from './dtos/certifications/remove-certification.dto';
+import { AddCertificationDto } from '@modules/job-seeker/dtos/certifications/add-certification.dto';
+import { RemoveCertificationDto } from '@modules/job-seeker/dtos/certifications/remove-certification.dto';
 
 @Injectable()
 export class JobSeekerService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) { }
 
   /** ================= Profile ================= */
   async getProfile(userId: bigint): Promise<

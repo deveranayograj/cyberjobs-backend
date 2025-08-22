@@ -1,13 +1,13 @@
 import { Controller, Post, Get, Body, UseGuards, Req } from '@nestjs/common';
-import { EmployerService } from './employer.service';
-import { CreateEmployerDto } from './dtos/create-employer.dto';
-import { SubmitKycDto } from './dtos/submit-kyc.dto';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { RolesGuard } from '../auth/guards/roles.guard';
-import { Roles } from '../auth/decorators/roles.decorator';
+import { EmployerService } from '@modules/employer/verification/employer.service';
+import { CreateEmployerDto } from '@modules/employer/verification/dtos/create-employer.dto';
+import { SubmitKycDto } from '@modules/employer/verification/dtos/submit-kyc.dto';
+import { JwtAuthGuard } from '@modules/auth/guards/jwt-auth.guard';
+import { RolesGuard } from '@modules/auth/guards/roles.guard';
+import { Roles } from '@common/decorators/roles.decorator';
 import { UserRole } from '@prisma/client';
 import type { Request } from 'express';
-import { PrismaService } from 'src/prisma/prisma.service';
+import { PrismaService } from '@prisma/prisma.service';
 
 interface RequestWithUser extends Request {
   user: { sub: string; role: UserRole };
@@ -18,7 +18,7 @@ export class EmployerController {
   constructor(
     private readonly employerService: EmployerService,
     private readonly prisma: PrismaService,
-  ) {}
+  ) { }
 
   /** --------------------- EMPLOYER ROUTES --------------------- */
 

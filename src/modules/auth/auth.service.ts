@@ -3,14 +3,14 @@ import {
   UnauthorizedException,
   BadRequestException,
 } from '@nestjs/common';
-import { UsersService } from '../users/users.service';
+import { UsersService } from '@modules/users/users.service';
 import { JwtService } from '@nestjs/jwt';
 import bcrypt from 'bcryptjs';
 import { User, UserRole } from '@prisma/client';
 import { Response } from 'express';
-import { RedisService } from '../../common/redis/redis.service';
-import { JWT_CONFIG } from '../../common/config/jwt.config';
-import { PrismaService } from 'src/prisma/prisma.service';
+import { RedisService } from '@common/redis/redis.service';
+import { JWT_CONFIG } from '@common/config/jwt.config';
+import { PrismaService } from '@prisma/prisma.service';
 
 interface JwtPayload {
   sub: string;
@@ -25,7 +25,7 @@ export class AuthService {
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
     private readonly redisService: RedisService,
-  ) {}
+  ) { }
 
   /** Deep serialize object to convert all BigInt values to strings */
   private deepSerialize(obj: any): any {

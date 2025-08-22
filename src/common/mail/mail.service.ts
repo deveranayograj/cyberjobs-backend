@@ -1,6 +1,6 @@
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { Resend } from 'resend';
-import { AppLogger } from '../logger/logger.service';
+import { AppLogger } from '@common/logger/logger.service';
 
 @Injectable()
 export class MailService {

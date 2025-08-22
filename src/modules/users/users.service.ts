@@ -4,7 +4,7 @@ import {
   NotFoundException,
   BadRequestException,
 } from '@nestjs/common';
-import { PrismaService } from '../../prisma/prisma.service';
+import { PrismaService } from '@prisma/prisma.service';
 import {
   UserRole,
   AccountStatus,
@@ -14,7 +14,7 @@ import {
 } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import { randomUUID } from 'crypto';
-import { MailService } from '../../common/mail/mail.service';
+import { MailService } from '@common/mail/mail.service';
 import slugify from 'slugify';
 
 @Injectable()
@@ -22,7 +22,7 @@ export class UsersService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly mailService: MailService,
-  ) {}
+  ) { }
 
   /** Save refresh token for a user */
   async saveRefreshToken(id: bigint, refreshToken: string): Promise<void> {

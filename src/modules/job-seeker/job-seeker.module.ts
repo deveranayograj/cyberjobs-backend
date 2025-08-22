@@ -1,10 +1,10 @@
 import { Module } from '@nestjs/common';
-import { JobSeekerService } from './job-seeker.service';
-import { JobSeekerController } from './job-seeker.controller';
-import { PrismaService } from '../../prisma/prisma.service';
-import { AuthModule } from '../auth/auth.module';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { RolesGuard } from '../auth/guards/roles.guard';
+import { JobSeekerService } from '@modules/job-seeker/job-seeker.service';
+import { JobSeekerController } from '@modules/job-seeker/job-seeker.controller';
+import { PrismaService } from '@prisma/prisma.service';
+import { AuthModule } from '@modules/auth/auth.module';
+import { JwtAuthGuard } from '@modules/auth/guards/jwt-auth.guard';
+import { RolesGuard } from '@modules/auth/guards/roles.guard';
 
 @Module({
   imports: [AuthModule],
@@ -12,4 +12,4 @@ import { RolesGuard } from '../auth/guards/roles.guard';
   providers: [JobSeekerService, PrismaService, JwtAuthGuard, RolesGuard],
   exports: [JobSeekerService],
 })
-export class JobSeekerModule {}
+export class JobSeekerModule { }

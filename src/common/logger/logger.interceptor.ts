@@ -5,11 +5,11 @@ import {
   CallHandler,
 } from '@nestjs/common';
 import { Observable, tap } from 'rxjs';
-import { AppLogger } from './logger.service';
+import { AppLogger } from '@common/logger/logger.service';
 
 @Injectable()
 export class LoggerInterceptor implements NestInterceptor {
-  constructor(private readonly logger: AppLogger) {}
+  constructor(private readonly logger: AppLogger) { }
 
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
     const req = context.switchToHttp().getRequest<Request>();

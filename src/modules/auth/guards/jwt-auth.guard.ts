@@ -5,7 +5,7 @@ import {
   Logger,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
-import { RedisService } from '../../../common/redis/redis.service';
+import { RedisService } from '@common/redis/redis.service';
 import { TokenExpiredError } from 'jsonwebtoken';
 
 @Injectable()

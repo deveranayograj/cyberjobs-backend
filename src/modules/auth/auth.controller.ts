@@ -8,7 +8,7 @@ import {
   Req,
   UnauthorizedException,
 } from '@nestjs/common';
-import { AuthService } from './auth.service';
+import { AuthService } from '@modules/auth/auth.service';
 import { LoginDto } from './dtos/login.dto';
 import { GoogleLoginDto } from './dtos/google-login.dto';
 
@@ -22,7 +22,7 @@ interface RequestWithCookies extends Request {
 
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(private readonly authService: AuthService) { }
 
   @Post('login')
   async login(
