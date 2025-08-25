@@ -108,6 +108,38 @@ enum JobStatus {
   ARCHIVED
 }
 
+enum ApplicationStatus {
+  APPLIED
+  SHORTLISTED
+  REJECTED
+  HIRED
+  WITHDRAWN
+}
+
+enum QuestionType {
+  SINGLE_CHOICE
+  MULTIPLE_CHOICE
+  SHORT_ANSWER
+}
+
+enum JobApplicationSource {
+  DIRECT
+  EXTERNAL
+  PRE_SCREENING
+}
+
+enum JobPriority {
+  REGULAR
+  FEATURED
+  URGENT
+}
+
+enum ProficiencyLevel {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+}
+
 // ==========================
 // Core Models
 // ==========================
@@ -155,6 +187,7 @@ model JobSeeker {
   experiences    Experience[]
   education      Education[]
   certifications Certification[]
+  JobApplication JobApplication[]
 }
 
 model Employer {
@@ -169,7 +202,6 @@ model Employer {
   bannerUrl      String?
   companyWebsite String?
 
-  website     String
   industry    String
   companySize CompanySize
   foundedYear Int?
@@ -256,9 +288,10 @@ model Skill {
 }
 
 model JobSeekerSkill {
-  id          BigInt @id @default(dbgenerated("floor(random()*1000000000+1000000000)"))
-  jobSeekerId BigInt
-  skillId     BigInt
+  id               BigInt            @id @default(dbgenerated("floor(random()*1000000000+1000000000)"))
+  jobSeekerId      BigInt
+  skillId          BigInt
+  proficiencyLevel ProficiencyLevel? // NEW
 
   jobSeeker JobSeeker @relation(fields: [jobSeekerId], references: [id])
   skill     Skill     @relation(fields: [skillId], references: [id])
@@ -275,7 +308,8 @@ model JobSeekerResume {
   fileName    String
   uploadedAt  DateTime @default(now())
 
-  jobSeeker JobSeeker @relation(fields: [jobSeekerId], references: [id])
+  jobSeeker      JobSeeker        @relation(fields: [jobSeekerId], references: [id])
+  JobApplication JobApplication[]
 }
 
 model Experience {
@@ -401,18 +435,21 @@ model Job {
   jobCategoryId      BigInt?
 
   // New relation for job location
-  locationId BigInt?
-  location   JobLocation? @relation(fields: [locationId], references: [id])
+  locationId   BigInt?
+  location     JobLocation?     @relation(fields: [locationId], references: [id])
+  applications JobApplication[]
 }
 
 model ScreeningQuestion {
-  id       BigInt   @id @default(dbgenerated("floor(random()*1000000000+1000000000)"))
-  jobId    BigInt
-  job      Job      @relation(fields: [jobId], references: [id])
-  question String
-  type     String
-  options  String[]
-  required Boolean
+  id                   BigInt                 @id @default(dbgenerated("floor(random()*1000000000+1000000000)"))
+  jobId                BigInt
+  job                  Job                    @relation(fields: [jobId], references: [id])
+  question             String
+  type                 QuestionType
+  options              String[]
+  required             Boolean
+  sequence             Int                    @default(0) // NEW: order of questions
+  JobApplicationAnswer JobApplicationAnswer[]
 }
 
 model JobCategory {
@@ -440,4 +477,46 @@ model AuditLog {
   jobId      BigInt?
   details    Json?
   createdAt  DateTime @default(now())
+}
+
+model JobApplication {
+  id            BigInt               @id @default(dbgenerated("floor(random()*1000000000+1000000000)"))
+  uniqueKey     String               @unique @default(uuid())
+  jobId         BigInt
+  jobSeekerId   BigInt
+  resumeId      BigInt?
+  appliedAt     DateTime             @default(now())
+  status        ApplicationStatus    @default(APPLIED)
+  source        JobApplicationSource
+  coverLetter   String?
+  withdrawnAt   DateTime?
+  priority      JobPriority          @default(REGULAR)
+  notes         String? // internal employer notes
+  shortlistedAt DateTime? // NEW
+  hiredAt       DateTime? // NEW
+  stageHistory  Json? // NEW: historical tracking
+
+  job       Job                    @relation(fields: [jobId], references: [id])
+  jobSeeker JobSeeker              @relation(fields: [jobSeekerId], references: [id])
+  resume    JobSeekerResume?       @relation(fields: [resumeId], references: [id])
+  answers   JobApplicationAnswer[]
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  @@index([jobId, status])
+  @@index([jobSeekerId, status])
+  @@index([appliedAt])
+  @@index([priority])
+}
+
+model JobApplicationAnswer {
+  id            BigInt @id @default(dbgenerated("floor(random()*1000000000+1000000000)"))
+  applicationId BigInt
+  questionId    BigInt
+  answer        Json // CHANGED from String → Json for multiple-choice answers
+
+  application JobApplication    @relation(fields: [applicationId], references: [id])
+  question    ScreeningQuestion @relation(fields: [questionId], references: [id])
 }

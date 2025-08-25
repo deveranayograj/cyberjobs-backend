@@ -8,7 +8,7 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
-import { JobSeekerService } from '@modules/job-seeker/job-seeker.service';
+import { JobSeekerService } from '@modules/job-seeker/profile/job-seeker.service';
 import { JwtAuthGuard } from '@modules/auth/guards/jwt-auth.guard';
 import { RolesGuard } from '@modules/auth/guards/roles.guard';
 import { Roles } from '@common/decorators/roles.decorator';

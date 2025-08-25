@@ -3,11 +3,12 @@ import { JobService } from './job.service';
 import { JobController } from './job.controller';
 import { PrismaService } from '@prisma/prisma.service';
 import { AuthModule } from '@modules/auth/auth.module';
+import { ScreeningQuestionModule } from '@modules/jobs/screening-questions/screening-question.module';
 import { JwtAuthGuard } from '@modules/auth/guards/jwt-auth.guard';
 import { RolesGuard } from '@modules/auth/guards/roles.guard';
 
 @Module({
-  imports: [AuthModule],
+  imports: [AuthModule, ScreeningQuestionModule],
   controllers: [JobController],
   providers: [JobService, PrismaService, JwtAuthGuard, RolesGuard],
   exports: [JobService],

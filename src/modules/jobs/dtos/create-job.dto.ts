@@ -7,7 +7,9 @@ import {
   IsBoolean,
   IsDateString,
   IsUrl,
+  ValidateNested,
 } from 'class-validator';
+import { Type } from 'class-transformer';
 import {
   EmploymentTypeEnum,
   ExperienceLevelEnum,
@@ -17,6 +19,7 @@ import {
   WorkModeEnum,
   JobStatusEnum,
 } from '@modules/jobs/enums';
+import { AddScreeningQuestionDto } from '@modules/jobs/dtos/add-screening-question.dto';
 
 export class CreateJobDto {
   @IsString() title: string;
@@ -49,4 +52,11 @@ export class CreateJobDto {
   @IsOptional() @IsNumber() jobCategoryId?: number;
   @IsOptional() @IsNumber() locationId?: number;
   @IsOptional() @IsEnum(JobStatusEnum) status?: JobStatusEnum;
+
+  // Add screening questions
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => AddScreeningQuestionDto)
+  screeningQuestions?: AddScreeningQuestionDto[];
 }

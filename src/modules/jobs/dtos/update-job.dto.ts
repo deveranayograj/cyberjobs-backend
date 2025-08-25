@@ -1,6 +1,13 @@
-import { PartialType } from '@nestjs/swagger';
-
+import { PartialType } from '@nestjs/mapped-types';
 import { CreateJobDto } from './create-job.dto';
+import { AddScreeningQuestionDto } from '@modules/jobs/dtos/add-screening-question.dto';
+import { IsOptional, IsArray, ValidateNested } from 'class-validator';
+import { Type } from 'class-transformer';
 
-// eslint-disable-next-line @typescript-eslint/no-unsafe-call
-export class UpdateJobDto extends PartialType(CreateJobDto) {}
+export class UpdateJobDto extends PartialType(CreateJobDto) {
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => AddScreeningQuestionDto)
+  screeningQuestions?: AddScreeningQuestionDto[];
+}
