@@ -18,7 +18,7 @@ export class EmployerController {
   constructor(
     private readonly employerService: EmployerService,
     private readonly prisma: PrismaService,
-  ) { }
+  ) {}
 
   /** --------------------- EMPLOYER ROUTES --------------------- */
 

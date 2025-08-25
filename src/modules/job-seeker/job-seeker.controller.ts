@@ -33,7 +33,7 @@ import { RemoveCertificationDto } from '@modules/job-seeker/dtos/certifications/
 @Roles(UserRole.SEEKER)
 @Controller('job-seeker')
 export class JobSeekerController {
-  constructor(private readonly jobSeekerService: JobSeekerService) { }
+  constructor(private readonly jobSeekerService: JobSeekerService) {}
 
   /** ================= Helper to parse BigInt ================= */
   private parseBigIntQuery(value?: string, name?: string): bigint {

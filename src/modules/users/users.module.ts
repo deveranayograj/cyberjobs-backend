@@ -10,4 +10,4 @@ import { MailModule } from '@common/mail/mail.module'; // <-- import your mail m
   imports: [MailModule], // <-- import here
   exports: [UsersService],
 })
-export class UsersModule { }
+export class UsersModule {}

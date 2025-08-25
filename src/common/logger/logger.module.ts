@@ -6,4 +6,4 @@ import { AppLogger } from '@common/logger/logger.service';
   providers: [AppLogger],
   exports: [AppLogger],
 })
-export class LoggerModule { }
+export class LoggerModule {}

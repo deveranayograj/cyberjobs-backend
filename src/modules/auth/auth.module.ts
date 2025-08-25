@@ -22,4 +22,4 @@ import { JWT_CONFIG } from '@common/config/jwt.config';
   providers: [AuthService, PrismaService, JwtStrategy],
   controllers: [AuthController],
 })
-export class AuthModule { }
+export class AuthModule {}

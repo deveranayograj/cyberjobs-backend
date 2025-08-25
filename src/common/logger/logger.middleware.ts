@@ -4,7 +4,7 @@ import { AppLogger } from '@common/logger/logger.service';
 
 @Injectable()
 export class LoggerMiddleware implements NestMiddleware {
-  constructor(private readonly logger: AppLogger) { }
+  constructor(private readonly logger: AppLogger) {}
 
   use(req: Request, res: Response, next: NextFunction) {
     this.logger.debug(`${req.method} ${req.originalUrl}`, 'Middleware');

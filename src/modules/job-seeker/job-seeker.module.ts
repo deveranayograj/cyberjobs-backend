@@ -12,4 +12,4 @@ import { RolesGuard } from '@modules/auth/guards/roles.guard';
   providers: [JobSeekerService, PrismaService, JwtAuthGuard, RolesGuard],
   exports: [JobSeekerService],
 })
-export class JobSeekerModule { }
+export class JobSeekerModule {}

@@ -5,7 +5,7 @@ import { SubmitKycDto } from '@modules/employer/verification/dtos/submit-kyc.dto
 
 @Injectable()
 export class EmployerService {
-  constructor(private readonly prisma: PrismaService) { }
+  constructor(private readonly prisma: PrismaService) {}
 
   /** Convert BigInt to string recursively */
   private deepSerialize(obj: unknown): unknown {
@@ -150,11 +150,11 @@ export class EmployerService {
       },
       kyc: latestKyc
         ? {
-          status: latestKyc.status,
-          remarks: latestKyc.remarks,
-          rejectionReason: latestKyc.rejectionReason,
-          attemptNumber: latestKyc.attemptNumber,
-        }
+            status: latestKyc.status,
+            remarks: latestKyc.remarks,
+            rejectionReason: latestKyc.rejectionReason,
+            attemptNumber: latestKyc.attemptNumber,
+          }
         : null,
     });
   }

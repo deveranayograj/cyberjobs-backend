@@ -1,23 +1,12 @@
 {
-    "compilerOptions": {
-        "baseUrl": ".",
-        "paths": {
-            "@common/*": [
-                "src/common/*"
-            ],
-            "@modules/*": [
-                "src/modules/*"
-            ],
-            "@prisma/*": [
-                "src/prisma/*"
-            ],
-            "@app/*": [
-                "src/*"
-            ]
-        }
-    },
-    "exclude": [
-        "node_modules",
-        "dist"
-    ]
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@common/*": ["src/common/*"],
+      "@modules/*": ["src/modules/*"],
+      "@prisma/*": ["src/prisma/*"],
+      "@app/*": ["src/*"]
+    }
+  },
+  "exclude": ["node_modules", "dist"]
 }

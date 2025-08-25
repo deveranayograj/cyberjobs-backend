@@ -5,4 +5,4 @@ import { MailService } from '@common/mail/mail.service';
   providers: [MailService],
   exports: [MailService], // export so other modules can use it
 })
-export class MailModule { }
+export class MailModule {}

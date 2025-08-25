@@ -28,4 +28,4 @@ import { RedisService } from '@common/redis/redis.service';
   providers: [RedisService],
   exports: [RedisService],
 })
-export class RedisModule { }
+export class RedisModule {}

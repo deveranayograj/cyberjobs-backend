@@ -14,7 +14,7 @@ import { RegisterUserDto } from '@modules/users/dtos/register-user.dto';
 
 @Controller('users')
 export class UsersController {
-  constructor(private readonly usersService: UsersService) { }
+  constructor(private readonly usersService: UsersService) {}
 
   // Register Job-Seeker or Employer with centralized validation
   @Post('register')

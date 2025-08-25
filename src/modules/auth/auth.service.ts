@@ -25,7 +25,7 @@ export class AuthService {
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
     private readonly redisService: RedisService,
-  ) { }
+  ) {}
 
   /** Deep serialize object to convert all BigInt values to strings */
   private deepSerialize(obj: any): any {

@@ -38,7 +38,7 @@ import { RemoveCertificationDto } from '@modules/job-seeker/dtos/certifications/
 
 @Injectable()
 export class JobSeekerService {
-  constructor(private readonly prisma: PrismaService) { }
+  constructor(private readonly prisma: PrismaService) {}
 
   /** ================= Profile ================= */
   async getProfile(userId: bigint): Promise<
