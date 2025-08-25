@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ConflictException,
+} from '@nestjs/common';
 import { PrismaService } from '@prisma/prisma.service';
 import { CreateEmployerDto } from '@modules/employer/verification/dtos/create-employer.dto';
 import { SubmitKycDto } from '@modules/employer/verification/dtos/submit-kyc.dto';
@@ -14,6 +18,7 @@ export class EmployerService {
     if (Array.isArray(obj)) return obj.map((i) => this.deepSerialize(i));
     if (typeof obj === 'object') {
       const res: Record<string, unknown> = {};
+      // eslint-disable-next-line guard-for-in
       for (const key in obj) res[key] = this.deepSerialize((obj as any)[key]);
       return res;
     }
@@ -60,11 +65,20 @@ export class EmployerService {
     });
     if (!employer) throw new NotFoundException('Employer profile not found');
 
-    const lastKyc = await this.prisma.employerKYC.findFirst({
+    // Enforce one active (PENDING) KYC and prevent resubmission after approval
+    const latestKyc = await this.prisma.employerKYC.findFirst({
       where: { employerId: employer.id },
       orderBy: { createdAt: 'desc' },
     });
-    const attemptNumber = lastKyc ? lastKyc.attemptNumber + 1 : 1;
+
+    if (latestKyc?.status === 'PENDING') {
+      throw new ConflictException('A KYC submission is already pending review');
+    }
+    if (latestKyc?.status === 'APPROVED') {
+      throw new ConflictException('Employer is already verified');
+    }
+
+    const attemptNumber = latestKyc ? latestKyc.attemptNumber + 1 : 1;
 
     const kyc = await this.prisma.employerKYC.create({
       data: {
@@ -75,7 +89,7 @@ export class EmployerService {
         otherDocs: dto.otherDocs ?? [],
         status: 'PENDING',
         attemptNumber,
-        previousKycId: lastKyc?.id,
+        previousKycId: latestKyc?.id,
       },
     });
 
@@ -91,47 +105,97 @@ export class EmployerService {
     };
   }
 
-  /** Admin action: approve KYC and mark employer verified */
+  /** Admin action: approve KYC and mark employer verified (only latest & pending) */
   async approveKyc(kycId: bigint) {
-    const kyc = await this.prisma.employerKYC.update({
+    // Load target KYC
+    const target = await this.prisma.employerKYC.findUnique({
       where: { id: kycId },
-      data: { status: 'APPROVED', remarks: 'Approved by admin' },
     });
+    if (!target) throw new NotFoundException('KYC record not found');
 
-    await this.prisma.employer.update({
-      where: { id: kyc.employerId },
-      data: {
-        isVerified: true,
-        onboardingStep: 'VERIFIED',
-        lastVisitedStep: 'VERIFIED',
-      },
+    // Ensure it is the latest for this employer
+    const latest = await this.prisma.employerKYC.findFirst({
+      where: { employerId: target.employerId },
+      orderBy: { createdAt: 'desc' },
+    });
+    if (!latest || latest.id !== target.id) {
+      throw new ConflictException('Only the latest KYC can be approved');
+    }
+    if (latest.status !== 'PENDING') {
+      throw new ConflictException('Only PENDING KYCs can be approved');
+    }
+
+    // Transaction to avoid race conditions
+    const result = await this.prisma.$transaction(async (tx) => {
+      const updatedKyc = await tx.employerKYC.update({
+        where: { id: kycId },
+        data: { status: 'APPROVED', remarks: 'Approved by admin' },
+      });
+
+      const updatedEmployer = await tx.employer.update({
+        where: { id: target.employerId },
+        data: {
+          isVerified: true,
+          onboardingStep: 'VERIFIED',
+          lastVisitedStep: 'VERIFIED',
+        },
+      });
+
+      return { updatedKyc, updatedEmployer };
     });
 
     return {
-      kyc: this.deepSerialize(kyc),
+      kyc: this.deepSerialize(result.updatedKyc),
       nextUrl: '/employer/dashboard',
     };
   }
 
-  /** Admin action: reject KYC */
+  /** Admin action: reject KYC (only latest & pending) */
   async rejectKyc(kycId: bigint, reason: string) {
-    const kyc = await this.prisma.employerKYC.update({
+    // Load target KYC
+    const target = await this.prisma.employerKYC.findUnique({
       where: { id: kycId },
-      data: { status: 'REJECTED', rejectionReason: reason },
     });
+    if (!target) throw new NotFoundException('KYC record not found');
 
-    await this.prisma.employer.update({
-      where: { id: kyc.employerId },
-      data: { onboardingStep: 'KYC_PENDING', lastVisitedStep: 'KYC_PENDING' },
+    // Ensure it is the latest for this employer
+    const latest = await this.prisma.employerKYC.findFirst({
+      where: { employerId: target.employerId },
+      orderBy: { createdAt: 'desc' },
+    });
+    if (!latest || latest.id !== target.id) {
+      throw new ConflictException('Only the latest KYC can be rejected');
+    }
+    if (latest.status !== 'PENDING') {
+      throw new ConflictException('Only PENDING KYCs can be rejected');
+    }
+
+    // Transaction to keep data consistent
+    const result = await this.prisma.$transaction(async (tx) => {
+      const updatedKyc = await tx.employerKYC.update({
+        where: { id: kycId },
+        data: { status: 'REJECTED', rejectionReason: reason },
+      });
+
+      const updatedEmployer = await tx.employer.update({
+        where: { id: target.employerId },
+        data: {
+          isVerified: false,
+          onboardingStep: 'KYC_PENDING',
+          lastVisitedStep: 'KYC_PENDING',
+        },
+      });
+
+      return { updatedKyc, updatedEmployer };
     });
 
     return {
-      kyc: this.deepSerialize(kyc),
+      kyc: this.deepSerialize(result.updatedKyc),
       nextUrl: '/employer/kyc',
     };
   }
 
-  /** Get employer status including latest KYC */
+  /** Get employer status including latest KYC (+ nextUrl hint) */
   async getEmployerStatus(userId: bigint) {
     const employer = await this.prisma.employer.findUnique({
       where: { userId },
@@ -143,10 +207,25 @@ export class EmployerService {
 
     const latestKyc = employer.kycs[0] || null;
 
+    let nextUrl = '/dashboard';
+    if (!employer.companyName) {
+      nextUrl = '/employer/setup';
+    } else if (employer.onboardingStep === 'SETUP_COMPLETE' && !latestKyc) {
+      nextUrl = '/employer/kyc';
+    } else if (latestKyc?.status === 'PENDING') {
+      nextUrl = '/employer/kyc-status';
+    } else if (latestKyc?.status === 'REJECTED') {
+      nextUrl = '/employer/kyc';
+    } else if (employer.isVerified) {
+      nextUrl = '/employer/dashboard';
+    }
+
     return this.deepSerialize({
       employer: {
         companyName: employer.companyName,
         isVerified: employer.isVerified,
+        onboardingStep: employer.onboardingStep,
+        lastVisitedStep: employer.lastVisitedStep,
       },
       kyc: latestKyc
         ? {
@@ -156,6 +235,7 @@ export class EmployerService {
             attemptNumber: latestKyc.attemptNumber,
           }
         : null,
+      nextUrl,
     });
   }
 }

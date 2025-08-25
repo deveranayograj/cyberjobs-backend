@@ -19,6 +19,27 @@ CREATE TYPE "public"."KYCStatus" AS ENUM ('PENDING', 'APPROVED', 'REJECTED');
 -- CreateEnum
 CREATE TYPE "public"."EmployerOnboardingStep" AS ENUM ('EMAIL_VERIFIED', 'SETUP_STARTED', 'SETUP_COMPLETE', 'KYC_PENDING', 'VERIFIED');
 
+-- CreateEnum
+CREATE TYPE "public"."EmploymentType" AS ENUM ('FULL_TIME', 'PART_TIME', 'CONTRACT', 'INTERNSHIP', 'REMOTE');
+
+-- CreateEnum
+CREATE TYPE "public"."ExperienceLevel" AS ENUM ('ENTRY', 'MID', 'SENIOR');
+
+-- CreateEnum
+CREATE TYPE "public"."SalaryType" AS ENUM ('ANNUAL', 'MONTHLY', 'HOURLY');
+
+-- CreateEnum
+CREATE TYPE "public"."Currency" AS ENUM ('INR', 'USD', 'EUR', 'GBP');
+
+-- CreateEnum
+CREATE TYPE "public"."ApplyType" AS ENUM ('DIRECT', 'EXTERNAL', 'PRE_SCREENING');
+
+-- CreateEnum
+CREATE TYPE "public"."WorkMode" AS ENUM ('ONSITE', 'REMOTE', 'HYBRID');
+
+-- CreateEnum
+CREATE TYPE "public"."JobStatus" AS ENUM ('DRAFT', 'PENDING', 'ACTIVE', 'EXPIRED', 'ARCHIVED');
+
 -- CreateTable
 CREATE TABLE "public"."User" (
     "id" BIGINT NOT NULL DEFAULT floor(random()*1000000000+1000000000),
@@ -97,6 +118,7 @@ CREATE TABLE "public"."Employer" (
     "lastVisitedStep" "public"."EmployerOnboardingStep",
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
+    "deletedAt" TIMESTAMP(3),
 
     CONSTRAINT "Employer_pkey" PRIMARY KEY ("id")
 );
@@ -222,6 +244,103 @@ CREATE TABLE "public"."Token" (
     CONSTRAINT "Token_pkey" PRIMARY KEY ("id")
 );
 
+-- CreateTable
+CREATE TABLE "public"."Job" (
+    "id" BIGINT NOT NULL DEFAULT floor(random()*1000000000+1000000000),
+    "uniqueKey" TEXT NOT NULL,
+    "slug" TEXT NOT NULL,
+    "title" TEXT NOT NULL,
+    "employerId" BIGINT NOT NULL,
+    "industry" TEXT NOT NULL,
+    "workMode" "public"."WorkMode" NOT NULL,
+    "employmentType" "public"."EmploymentType" NOT NULL,
+    "experience" "public"."ExperienceLevel" NOT NULL,
+    "salaryMin" DOUBLE PRECISION NOT NULL,
+    "salaryMax" DOUBLE PRECISION NOT NULL,
+    "salaryType" "public"."SalaryType" NOT NULL,
+    "currency" "public"."Currency" NOT NULL,
+    "postedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "publishedAt" TIMESTAMP(3),
+    "closedAt" TIMESTAMP(3),
+    "validTill" TIMESTAMP(3) NOT NULL,
+    "description" TEXT NOT NULL,
+    "requirements" TEXT[],
+    "responsibilities" TEXT[],
+    "benefits" TEXT[],
+    "educationLevel" TEXT NOT NULL,
+    "tags" TEXT[],
+    "technologies" TEXT[],
+    "certifications" TEXT[],
+    "clearanceRequired" BOOLEAN,
+    "applyType" "public"."ApplyType" NOT NULL,
+    "applyUrl" TEXT,
+    "applicationEmail" TEXT,
+    "applicationLimit" INTEGER,
+    "views" INTEGER NOT NULL DEFAULT 0,
+    "applicationsCount" INTEGER NOT NULL DEFAULT 0,
+    "shortlistedCount" INTEGER,
+    "hiredCount" INTEGER,
+    "bookmarkedCount" INTEGER,
+    "isFeatured" BOOLEAN NOT NULL DEFAULT false,
+    "isUrgent" BOOLEAN NOT NULL DEFAULT false,
+    "metaTitle" TEXT,
+    "metaDescription" TEXT,
+    "status" "public"."JobStatus" NOT NULL DEFAULT 'DRAFT',
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+    "deletedAt" TIMESTAMP(3),
+    "jobCategoryId" BIGINT,
+    "locationId" BIGINT,
+
+    CONSTRAINT "Job_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "public"."ScreeningQuestion" (
+    "id" BIGINT NOT NULL DEFAULT floor(random()*1000000000+1000000000),
+    "jobId" BIGINT NOT NULL,
+    "question" TEXT NOT NULL,
+    "type" TEXT NOT NULL,
+    "options" TEXT[],
+    "required" BOOLEAN NOT NULL,
+
+    CONSTRAINT "ScreeningQuestion_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "public"."JobCategory" (
+    "id" BIGINT NOT NULL DEFAULT floor(random()*1000000000+1000000000),
+    "main" TEXT NOT NULL,
+    "sub" TEXT NOT NULL,
+
+    CONSTRAINT "JobCategory_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "public"."JobLocation" (
+    "id" BIGINT NOT NULL DEFAULT floor(random()*1000000000+1000000000),
+    "city" TEXT,
+    "state" TEXT,
+    "country" TEXT,
+    "latitude" DOUBLE PRECISION,
+    "longitude" DOUBLE PRECISION,
+
+    CONSTRAINT "JobLocation_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "public"."AuditLog" (
+    "id" BIGINT NOT NULL DEFAULT floor(random()*1000000000+1000000000),
+    "action" TEXT NOT NULL,
+    "userId" BIGINT,
+    "employerId" BIGINT,
+    "jobId" BIGINT,
+    "details" JSONB,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "AuditLog_pkey" PRIMARY KEY ("id")
+);
+
 -- CreateIndex
 CREATE UNIQUE INDEX "User_uniqueKey_key" ON "public"."User"("uniqueKey");
 
@@ -273,6 +392,12 @@ CREATE UNIQUE INDEX "Token_uniqueKey_key" ON "public"."Token"("uniqueKey");
 -- CreateIndex
 CREATE UNIQUE INDEX "Token_token_key" ON "public"."Token"("token");
 
+-- CreateIndex
+CREATE UNIQUE INDEX "Job_uniqueKey_key" ON "public"."Job"("uniqueKey");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "Job_slug_key" ON "public"."Job"("slug");
+
 -- AddForeignKey
 ALTER TABLE "public"."JobSeeker" ADD CONSTRAINT "JobSeeker_userId_fkey" FOREIGN KEY ("userId") REFERENCES "public"."User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
@@ -308,3 +433,15 @@ ALTER TABLE "public"."UserProvider" ADD CONSTRAINT "UserProvider_userId_fkey" FO
 
 -- AddForeignKey
 ALTER TABLE "public"."Token" ADD CONSTRAINT "Token_userId_fkey" FOREIGN KEY ("userId") REFERENCES "public"."User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "public"."Job" ADD CONSTRAINT "Job_employerId_fkey" FOREIGN KEY ("employerId") REFERENCES "public"."Employer"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "public"."Job" ADD CONSTRAINT "Job_jobCategoryId_fkey" FOREIGN KEY ("jobCategoryId") REFERENCES "public"."JobCategory"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "public"."Job" ADD CONSTRAINT "Job_locationId_fkey" FOREIGN KEY ("locationId") REFERENCES "public"."JobLocation"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "public"."ScreeningQuestion" ADD CONSTRAINT "ScreeningQuestion_jobId_fkey" FOREIGN KEY ("jobId") REFERENCES "public"."Job"("id") ON DELETE RESTRICT ON UPDATE CASCADE;

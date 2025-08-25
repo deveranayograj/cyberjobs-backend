@@ -59,6 +59,56 @@ enum EmployerOnboardingStep {
 }
 
 // ==========================
+// Job-Specific Enums
+// ==========================
+enum EmploymentType {
+  FULL_TIME
+  PART_TIME
+  CONTRACT
+  INTERNSHIP
+  REMOTE
+}
+
+enum ExperienceLevel {
+  ENTRY
+  MID
+  SENIOR
+}
+
+enum SalaryType {
+  ANNUAL
+  MONTHLY
+  HOURLY
+}
+
+enum Currency {
+  INR
+  USD
+  EUR
+  GBP
+}
+
+enum ApplyType {
+  DIRECT
+  EXTERNAL
+  PRE_SCREENING
+}
+
+enum WorkMode {
+  ONSITE
+  REMOTE
+  HYBRID
+}
+
+enum JobStatus {
+  DRAFT
+  PENDING
+  ACTIVE
+  EXPIRED
+  ARCHIVED
+}
+
+// ==========================
 // Core Models
 // ==========================
 model User {
@@ -159,8 +209,10 @@ model Employer {
 
   kycs EmployerKYC[]
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+  Job       Job[]
 }
 
 // ==========================
@@ -293,4 +345,99 @@ model Token {
   expiresAt DateTime
   createdAt DateTime  @default(now())
   usedAt    DateTime?
+}
+
+// ==========================
+// Job Posting Models
+// ==========================
+model Job {
+  id                BigInt          @id @default(dbgenerated("floor(random()*1000000000+1000000000)"))
+  uniqueKey         String          @unique @default(uuid())
+  slug              String          @unique
+  title             String
+  employerId        BigInt
+  employer          Employer        @relation(fields: [employerId], references: [id])
+  industry          String
+  workMode          WorkMode
+  employmentType    EmploymentType
+  experience        ExperienceLevel
+  salaryMin         Float
+  salaryMax         Float
+  salaryType        SalaryType
+  currency          Currency
+  postedAt          DateTime        @default(now())
+  publishedAt       DateTime?
+  closedAt          DateTime?
+  validTill         DateTime
+  description       String
+  requirements      String[]
+  responsibilities  String[]
+  benefits          String[]
+  educationLevel    String
+  tags              String[]
+  technologies      String[]
+  certifications    String[]
+  clearanceRequired Boolean?
+  applyType         ApplyType
+  applyUrl          String?
+  applicationEmail  String?
+  applicationLimit  Int?
+  views             Int             @default(0)
+  applicationsCount Int             @default(0)
+  shortlistedCount  Int?
+  hiredCount        Int?
+  bookmarkedCount   Int?
+  isFeatured        Boolean         @default(false)
+  isUrgent          Boolean         @default(false)
+  metaTitle         String?
+  metaDescription   String?
+  status            JobStatus       @default(DRAFT)
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+  deletedAt         DateTime?
+
+  screeningQuestions ScreeningQuestion[]
+  JobCategory        JobCategory?        @relation(fields: [jobCategoryId], references: [id])
+  jobCategoryId      BigInt?
+
+  // New relation for job location
+  locationId BigInt?
+  location   JobLocation? @relation(fields: [locationId], references: [id])
+}
+
+model ScreeningQuestion {
+  id       BigInt   @id @default(dbgenerated("floor(random()*1000000000+1000000000)"))
+  jobId    BigInt
+  job      Job      @relation(fields: [jobId], references: [id])
+  question String
+  type     String
+  options  String[]
+  required Boolean
+}
+
+model JobCategory {
+  id   BigInt @id @default(dbgenerated("floor(random()*1000000000+1000000000)"))
+  main String
+  sub  String
+  jobs Job[]
+}
+
+model JobLocation {
+  id        BigInt  @id @default(dbgenerated("floor(random()*1000000000+1000000000)"))
+  city      String?
+  state     String?
+  country   String?
+  latitude  Float?
+  longitude Float?
+  jobs      Job[]
+}
+
+model AuditLog {
+  id         BigInt   @id @default(dbgenerated("floor(random()*1000000000+1000000000)"))
+  action     String
+  userId     BigInt?
+  employerId BigInt?
+  jobId      BigInt?
+  details    Json?
+  createdAt  DateTime @default(now())
 }

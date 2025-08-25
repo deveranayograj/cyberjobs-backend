@@ -68,9 +68,40 @@ export class AuthService {
     const passwordMatch = await bcrypt.compare(password, user.password);
     if (!passwordMatch) throw new UnauthorizedException('Invalid credentials');
 
+    // Check email verification first
     if (!user.isVerified) throw new UnauthorizedException('Email not verified');
 
-    const accessToken = this.generateAccessToken(user);
+    let accessToken: string;
+    let redirectUrl: string | null = null;
+
+    // Special handling for employer onboarding
+    if (user.role === UserRole.EMPLOYER) {
+      const employer = await this.prisma.employer.findUnique({
+        where: { userId: user.id },
+      });
+      if (!employer)
+        throw new UnauthorizedException('Employer profile not found');
+
+      // Determine next step based on onboarding
+      switch (employer.onboardingStep) {
+        case 'EMAIL_VERIFIED':
+          redirectUrl = '/employer/setup';
+          break;
+        case 'SETUP_STARTED':
+        case 'SETUP_COMPLETE':
+          // Allow login but redirect to next setup step
+          redirectUrl = '/employer/kyc';
+          break;
+        case 'KYC_PENDING':
+          redirectUrl = '/employer/kyc-status';
+          break;
+        case 'VERIFIED':
+          redirectUrl = '/employer/dashboard';
+          break;
+      }
+    }
+
+    accessToken = this.generateAccessToken(user);
     const refreshToken = this.generateRefreshToken(user);
 
     await this.usersService.saveRefreshToken(user.id, refreshToken);
@@ -82,7 +113,11 @@ export class AuthService {
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
-    return { accessToken, user: this.deepSerialize(user) };
+    return {
+      accessToken,
+      user: this.deepSerialize(user),
+      redirectUrl, // frontend can redirect to this if present
+    };
   }
 
   async loginWithGoogle(email: string, fullName: string, res: Response) {
