@@ -1,17 +1,21 @@
-// src/modules/jobs/screening-questions/dtos/add-screening-question.dto.ts
-import { IsString, IsBoolean, IsArray, IsOptional } from 'class-validator';
+import { IsNotEmpty, IsEnum, IsOptional, IsArray, IsBoolean, IsString } from 'class-validator';
+import { QuestionType } from '@prisma/client';
 
 export class AddScreeningQuestionDto {
+  @IsNotEmpty()
   @IsString()
   question: string;
 
-  @IsString()
-  type: string; // e.g., 'single-choice', 'multiple-choice', 'short-answer'
+  @IsNotEmpty()
+  @IsEnum(QuestionType) // ✅ ensure only valid enum values are allowed
+  type: QuestionType;
 
-  @IsArray()
   @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
   options?: string[];
 
+  @IsOptional()
   @IsBoolean()
-  required: boolean;
+  required?: boolean;
 }

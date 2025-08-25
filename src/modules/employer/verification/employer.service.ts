@@ -43,7 +43,6 @@ export class EmployerService {
         companyName: dto.companyName,
         slug,
         companyWebsite: dto.companyWebsite,
-        website: dto.companyWebsite,
         companySize: dto.companySize,
         contactName: dto.contactName,
         contactEmail: dto.contactEmail,

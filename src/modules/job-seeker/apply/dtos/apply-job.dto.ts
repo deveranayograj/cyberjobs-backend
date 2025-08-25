@@ -1,18 +1,14 @@
-import {
-  IsNotEmpty,
-  IsOptional,
-  IsString,
-  IsEnum,
-  IsBigInt,
-} from 'class-validator';
-import { ApplyType, JobApplicationSource } from '@prisma/client';
+// src/modules/job-seeker/apply/dtos/apply-job.dto.ts
+import { IsNotEmpty, IsOptional, IsString, IsEnum, IsNumber } from 'class-validator';
+import { JobApplicationSource } from '@prisma/client';
 
 export class ApplyJobDto {
   @IsNotEmpty()
+  @IsNumber({}, { message: 'jobId must be a number' })
   jobId: bigint;
 
   @IsOptional()
-  @IsBigInt()
+  @IsNumber({}, { message: 'resumeId must be a number' })
   resumeId?: bigint;
 
   @IsOptional()

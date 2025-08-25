@@ -1,3 +1,4 @@
+// src/modules/job-seeker/apply/apply.controller.ts
 import {
   Controller,
   Post,
@@ -12,12 +13,12 @@ import {
 import { ApplyService } from './apply.service';
 import { ApplyJobDto } from './dtos/apply-job.dto';
 import { WithdrawApplicationDto } from './dtos/withdraw-application.dto';
-import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
+import { JwtAuthGuard } from '@common/guards/jwt-auth.guard';
 
 @UseGuards(JwtAuthGuard)
 @Controller('applications')
 export class ApplyController {
-  constructor(private readonly applyService: ApplyService) {}
+  constructor(private readonly applyService: ApplyService) { }
 
   @Post('apply')
   applyJob(@Req() req, @Body() dto: ApplyJobDto) {

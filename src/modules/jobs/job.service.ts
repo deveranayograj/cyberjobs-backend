@@ -5,14 +5,14 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { PrismaService } from '@prisma/prisma.service';
-import { Job, JobStatus, Prisma, EmployerOnboardingStep } from '@prisma/client';
+import { Job, JobStatus, Prisma, EmployerOnboardingStep, QuestionType } from '@prisma/client';
 import { CreateJobDto } from './dtos/create-job.dto';
 import { UpdateJobDto } from './dtos/update-job.dto';
 import { ChangeJobStatusDto } from './dtos/change-status.dto';
 
 @Injectable()
 export class JobService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) { }
 
   /** ================= Serializer for BigInt & Date ================= */
   private serialize(obj: any): any {
@@ -33,9 +33,7 @@ export class JobService {
   /** ================= Create Job ================= */
   async createJob(userId: bigint, dto: CreateJobDto): Promise<Job> {
     try {
-      const employer = await this.prisma.employer.findUnique({
-        where: { userId },
-      });
+      const employer = await this.prisma.employer.findUnique({ where: { userId } });
       if (!employer) throw new NotFoundException('Employer profile not found');
 
       if (employer.onboardingStep !== EmployerOnboardingStep.VERIFIED) {
@@ -44,44 +42,27 @@ export class JobService {
         );
       }
 
-      // Apply type validations
-      if (
-        (dto.applyType === 'DIRECT' || dto.applyType === 'EXTERNAL') &&
-        !dto.applyUrl
-      ) {
-        throw new InternalServerErrorException(
-          'applyUrl is required for this applyType',
-        );
+      // Type validations
+      if ((dto.applyType === 'DIRECT' || dto.applyType === 'EXTERNAL') && !dto.applyUrl) {
+        throw new InternalServerErrorException('applyUrl is required for this applyType');
       }
 
       if (dto.applyType !== 'PRE_SCREENING') {
-        dto.screeningQuestions = undefined; // ignore screening questions if not PRE_SCREENING
+        dto.screeningQuestions = undefined; // ignore if not PRE_SCREENING
       }
 
-      const baseSlug = dto.title
-        .toLowerCase()
-        .replace(/\s+/g, '-')
-        .replace(/[^\w\-]+/g, '');
-      const slug = `${baseSlug}-${Date.now()}`;
+      const slug = `${dto.title.toLowerCase().replace(/\s+/g, '-').replace(/[^\w\-]+/g, '')}-${Date.now()}`;
 
-      let jobCategoryConnect:
-        | Prisma.JobCategoryCreateNestedOneWithoutJobsInput
-        | undefined;
+      let jobCategoryConnect: Prisma.JobCategoryCreateNestedOneWithoutJobsInput | undefined;
       if (dto.jobCategoryId) {
-        const category = await this.prisma.jobCategory.findUnique({
-          where: { id: BigInt(dto.jobCategoryId) },
-        });
+        const category = await this.prisma.jobCategory.findUnique({ where: { id: BigInt(dto.jobCategoryId) } });
         if (!category) throw new NotFoundException('Job category not found');
         jobCategoryConnect = { connect: { id: category.id } };
       }
 
-      let locationConnect:
-        | Prisma.JobLocationCreateNestedOneWithoutJobsInput
-        | undefined;
+      let locationConnect: Prisma.JobLocationCreateNestedOneWithoutJobsInput | undefined;
       if (dto.locationId) {
-        const location = await this.prisma.jobLocation.findUnique({
-          where: { id: BigInt(dto.locationId) },
-        });
+        const location = await this.prisma.jobLocation.findUnique({ where: { id: BigInt(dto.locationId) } });
         if (!location) throw new NotFoundException('Job location not found');
         locationConnect = { connect: { id: location.id } };
       }
@@ -121,7 +102,14 @@ export class JobService {
           JobCategory: jobCategoryConnect,
           location: locationConnect,
           screeningQuestions: dto.screeningQuestions
-            ? { create: dto.screeningQuestions }
+            ? {
+              create: dto.screeningQuestions.map((q) => ({
+                question: q.question,
+                type: q.type as QuestionType,
+                options: q.options ?? [],
+                required: q.required ?? false,
+              })),
+            }
             : undefined,
         },
       });
@@ -136,40 +124,34 @@ export class JobService {
   /** ================= Update Job ================= */
   async updateJob(jobId: bigint, dto: UpdateJobDto): Promise<Job> {
     try {
-      // Apply type validations
-      if (
-        (dto.applyType === 'DIRECT' || dto.applyType === 'EXTERNAL') &&
-        !dto.applyUrl
-      ) {
-        throw new InternalServerErrorException(
-          'applyUrl is required for this applyType',
-        );
+      if ((dto.applyType === 'DIRECT' || dto.applyType === 'EXTERNAL') && !dto.applyUrl) {
+        throw new InternalServerErrorException('applyUrl is required for this applyType');
       }
 
       if (dto.applyType !== 'PRE_SCREENING') {
-        dto.screeningQuestions = undefined; // ignore if not PRE_SCREENING
+        dto.screeningQuestions = undefined;
       }
 
       const data: Prisma.JobUpdateInput = {};
 
       for (const key of Object.keys(dto)) {
         if (key === 'jobCategoryId' && dto[key] !== undefined) {
-          const category = await this.prisma.jobCategory.findUnique({
-            where: { id: BigInt(dto[key]) },
-          });
+          const category = await this.prisma.jobCategory.findUnique({ where: { id: BigInt(dto[key]) } });
           if (!category) throw new NotFoundException('Job category not found');
           data.JobCategory = { connect: { id: category.id } };
         } else if (key === 'locationId' && dto[key] !== undefined) {
-          const location = await this.prisma.jobLocation.findUnique({
-            where: { id: BigInt(dto[key]) },
-          });
+          const location = await this.prisma.jobLocation.findUnique({ where: { id: BigInt(dto[key]) } });
           if (!location) throw new NotFoundException('Job location not found');
           data.location = { connect: { id: location.id } };
         } else if (key === 'screeningQuestions' && dto[key]) {
-          // Replace old questions only if PRE_SCREENING
           data.screeningQuestions = {
             deleteMany: {},
-            create: dto.screeningQuestions,
+            create: dto.screeningQuestions.map((q) => ({
+              question: q.question,
+              type: q.type as QuestionType,
+              options: q.options ?? [],
+              required: q.required ?? false,
+            })),
           };
         } else if (key === 'status' && dto[key] !== undefined) {
           data.status = dto[key];
@@ -178,11 +160,7 @@ export class JobService {
         }
       }
 
-      const job = await this.prisma.job.update({
-        where: { id: jobId },
-        data,
-      });
-
+      const job = await this.prisma.job.update({ where: { id: jobId }, data });
       return this.serialize(job);
     } catch (err) {
       console.error('Failed to update job:', err);
@@ -193,11 +171,7 @@ export class JobService {
   /** ================= Change Job Status ================= */
   async changeStatus(jobId: bigint, dto: ChangeJobStatusDto): Promise<Job> {
     try {
-      const job = await this.prisma.job.update({
-        where: { id: jobId },
-        data: { status: dto.status },
-      });
-
+      const job = await this.prisma.job.update({ where: { id: jobId }, data: { status: dto.status } });
       return this.serialize(job);
     } catch (err) {
       console.error('Failed to change job status:', err);
@@ -207,9 +181,7 @@ export class JobService {
 
   /** ================= Get Jobs by Employer ================= */
   async getJobsByEmployer(userId: bigint): Promise<Job[]> {
-    const employer = await this.prisma.employer.findUnique({
-      where: { userId },
-    });
+    const employer = await this.prisma.employer.findUnique({ where: { userId } });
     if (!employer) throw new NotFoundException('Employer profile not found');
 
     const jobs = await this.prisma.job.findMany({

@@ -9,31 +9,31 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { JobSeekerService } from '@modules/job-seeker/profile/job-seeker.service';
-import { JwtAuthGuard } from '@modules/auth/guards/jwt-auth.guard';
-import { RolesGuard } from '@modules/auth/guards/roles.guard';
+import { JwtAuthGuard } from '@common/guards/jwt-auth.guard';
+import { RolesGuard } from '@common/guards/roles.guard';
 import { Roles } from '@common/decorators/roles.decorator';
 import { UserRole } from '@prisma/client';
 
 // DTO imports
-import { UpdateJobSeekerDto } from '@modules/job-seeker/dtos/overview/update-job-seeker.dto';
-import { UpdateLinksDto } from '@modules/job-seeker/dtos/overview/update-links.dto';
-import { AddSkillsDto } from '@modules/job-seeker/dtos/skills/add-skills.dto';
-import { RemoveSkillsDto } from '@modules/job-seeker/dtos/skills/remove-skills.dto';
-import { UploadResumeDto } from '@modules/job-seeker/dtos/resumes/upload-resume.dto';
-import { AddExperienceDto } from '@modules/job-seeker/dtos/experience/add-experience.dto';
-import { RemoveExperienceDto } from '@modules/job-seeker/dtos/experience/remove-experience.dto';
-import { UpdateExperienceDto } from '@modules/job-seeker/dtos/experience/update-experience.dto';
-import { AddEducationDto } from '@modules/job-seeker/dtos/education/add-education.dto';
-import { RemoveEducationDto } from '@modules/job-seeker/dtos/education/remove-education.dto';
-import { UpdateEducationDto } from '@modules/job-seeker/dtos/education/update-education.dto';
-import { AddCertificationDto } from '@modules/job-seeker/dtos/certifications/add-certification.dto';
-import { RemoveCertificationDto } from '@modules/job-seeker/dtos/certifications/remove-certification.dto';
+import { UpdateJobSeekerDto } from '@modules/job-seeker/profile/dtos/overview/update-job-seeker.dto';
+import { UpdateLinksDto } from '@modules/job-seeker/profile/dtos/overview/update-links.dto';
+import { AddSkillsDto } from '@modules/job-seeker/profile/dtos/skills/add-skills.dto';
+import { RemoveSkillsDto } from '@modules/job-seeker/profile/dtos/skills/remove-skills.dto';
+import { UploadResumeDto } from '@modules/job-seeker/profile/dtos/resumes/upload-resume.dto';
+import { AddExperienceDto } from '@modules/job-seeker/profile/dtos/experience/add-experience.dto';
+import { RemoveExperienceDto } from '@modules/job-seeker/profile/dtos/experience/remove-experience.dto';
+import { UpdateExperienceDto } from '@modules/job-seeker/profile/dtos/experience/update-experience.dto';
+import { AddEducationDto } from '@modules/job-seeker/profile/dtos/education/add-education.dto';
+import { RemoveEducationDto } from '@modules/job-seeker/profile/dtos/education/remove-education.dto';
+import { UpdateEducationDto } from '@modules/job-seeker/profile/dtos/education/update-education.dto';
+import { AddCertificationDto } from '@modules/job-seeker/profile/dtos/certifications/add-certification.dto';
+import { RemoveCertificationDto } from '@modules/job-seeker/profile/dtos/certifications/remove-certification.dto';
 
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(UserRole.SEEKER)
 @Controller('job-seeker')
 export class JobSeekerController {
-  constructor(private readonly jobSeekerService: JobSeekerService) {}
+  constructor(private readonly jobSeekerService: JobSeekerService) { }
 
   /** ================= Helper to parse BigInt ================= */
   private parseBigIntQuery(value?: string, name?: string): bigint {

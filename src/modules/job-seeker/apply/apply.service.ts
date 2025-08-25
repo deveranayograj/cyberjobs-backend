@@ -1,20 +1,15 @@
-import {
-  Injectable,
-  NotFoundException,
-  BadRequestException,
-} from '@nestjs/common';
-import { PrismaService } from '../../../prisma/prisma.service';
+// src/modules/job-seeker/apply/apply.service.ts
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { PrismaService } from '@prisma/prisma.service';
 import { ApplyJobDto } from './dtos/apply-job.dto';
 import { WithdrawApplicationDto } from './dtos/withdraw-application.dto';
 
 @Injectable()
 export class ApplyService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) { }
 
   async applyJob(userId: bigint, dto: ApplyJobDto) {
-    const jobSeeker = await this.prisma.jobSeeker.findUnique({
-      where: { userId },
-    });
+    const jobSeeker = await this.prisma.jobSeeker.findUnique({ where: { userId } });
     if (!jobSeeker) throw new NotFoundException('Job Seeker not found');
 
     const job = await this.prisma.job.findUnique({ where: { id: dto.jobId } });
@@ -34,15 +29,13 @@ export class ApplyService {
       data: {
         jobId: dto.jobId,
         jobSeekerId: jobSeeker.id,
-        resumeId: dto.resumeId,
+        resumeId: dto.resumeId ? BigInt(dto.resumeId) : undefined,
         coverLetter: dto.coverLetter,
         source: dto.source,
         stageHistory: [{ status: 'APPLIED', date: new Date() }],
       },
       include: {
-        job: {
-          select: { title: true, employer: { select: { companyName: true } } },
-        },
+        job: { select: { title: true, employer: { select: { companyName: true } } } },
       },
     });
 
@@ -55,25 +48,21 @@ export class ApplyService {
   }
 
   async withdrawApplication(userId: bigint, dto: WithdrawApplicationDto) {
-    const jobSeeker = await this.prisma.jobSeeker.findUnique({
-      where: { userId },
-    });
+    const jobSeeker = await this.prisma.jobSeeker.findUnique({ where: { userId } });
     if (!jobSeeker) throw new NotFoundException('Job Seeker not found');
 
-    const application = await this.prisma.jobApplication.findUnique({
-      where: { id: dto.applicationId },
-    });
+    const applicationId = BigInt(dto.applicationId);
+    const application = await this.prisma.jobApplication.findUnique({ where: { id: applicationId } });
     if (!application) throw new NotFoundException('Application not found');
-    if (application.jobSeekerId !== jobSeeker.id)
-      throw new BadRequestException('Not authorized');
+    if (application.jobSeekerId !== jobSeeker.id) throw new BadRequestException('Not authorized');
 
     const updated = await this.prisma.jobApplication.update({
-      where: { id: dto.applicationId },
+      where: { id: applicationId },
       data: {
         status: 'WITHDRAWN',
         withdrawnAt: new Date(),
         stageHistory: [
-          ...(application.stageHistory || []),
+          ...(Array.isArray(application.stageHistory) ? application.stageHistory : []),
           { status: 'WITHDRAWN', date: new Date() },
         ],
       },
@@ -83,54 +72,25 @@ export class ApplyService {
   }
 
   async listApplications(userId: bigint) {
-    const jobSeeker = await this.prisma.jobSeeker.findUnique({
-      where: { userId },
-    });
-    if (!jobSeeker) throw new NotFoundException('Job Seeker not found');
-
-    const applications = await this.prisma.jobApplication.findMany({
-      where: { jobSeekerId: jobSeeker.id },
+    return this.prisma.jobApplication.findMany({
+      where: { jobSeekerId: userId },
       include: {
-        job: {
-          select: { title: true, employer: { select: { companyName: true } } },
-        },
-        resume: true,
+        job: { select: { title: true, employer: { select: { companyName: true } } } },
       },
       orderBy: { appliedAt: 'desc' },
     });
-
-    return applications.map((a) => ({
-      applicationId: a.id,
-      jobId: a.jobId,
-      jobTitle: a.job.title,
-      companyName: a.job.employer.companyName,
-      status: a.status,
-      source: a.source,
-      priority: a.priority,
-      appliedAt: a.appliedAt,
-      coverLetter: a.coverLetter,
-      resumeUrl: a.resume?.url,
-      stageHistory: a.stageHistory,
-    }));
   }
 
   async getApplication(userId: bigint, applicationId: bigint) {
-    const jobSeeker = await this.prisma.jobSeeker.findUnique({
-      where: { userId },
-    });
-    if (!jobSeeker) throw new NotFoundException('Job Seeker not found');
-
     const application = await this.prisma.jobApplication.findUnique({
       where: { id: applicationId },
       include: {
-        job: { include: { employer: true } },
-        resume: true,
-        answers: true,
+        job: { select: { title: true, employer: { select: { companyName: true } } } },
       },
     });
-    if (!application) throw new NotFoundException('Application not found');
-    if (application.jobSeekerId !== jobSeeker.id)
-      throw new BadRequestException('Not authorized');
+
+    if (!application || application.jobSeekerId !== userId)
+      throw new NotFoundException('Application not found');
 
     return application;
   }

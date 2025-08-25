@@ -22,7 +22,7 @@ export class UsersService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly mailService: MailService,
-  ) {}
+  ) { }
 
   /** Save refresh token for a user */
   async saveRefreshToken(id: bigint, refreshToken: string): Promise<void> {
@@ -101,7 +101,6 @@ export class UsersService {
             companyLogo: null,
             bannerUrl: null,
             companyWebsite: null,
-            website: '',
             industry: '',
             companySize: 'SIZE_1_10',
             foundedYear: null,
