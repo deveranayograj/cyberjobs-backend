@@ -10,6 +10,7 @@ import { JobModule } from '@modules/jobs/employer/job.module';
 import { ApplyModule } from '@modules/job-seeker/apply/apply.module';
 import { EmployerProfileModule } from '@modules/employer/profile/employer-profile.module';
 import { EmployerApplicantsModule } from '@modules/employer/applicants/employer-applicants.module';
+import { PublicModule } from '@modules/jobs/public/public.module';
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { EmployerApplicantsModule } from '@modules/employer/applicants/employer-
     ApplyModule,
     EmployerProfileModule,
     EmployerApplicantsModule,
+    PublicModule,
   ],
 })
 export class AppModule { }

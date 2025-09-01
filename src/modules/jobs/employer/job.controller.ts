@@ -19,7 +19,7 @@ import { ChangeJobStatusDto } from '@modules/jobs/employer/dtos/change-status.dt
 
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(UserRole.EMPLOYER)
-@Controller('jobs')
+@Controller('employer/jobs')
 export class JobController {
   constructor(private readonly jobService: JobService) { }
 
