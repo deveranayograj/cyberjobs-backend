@@ -1,6 +1,6 @@
 import { Prisma } from '@prisma/client';
-import { JobResponseDto } from '../dtos/job-response.dto';
-import { JobDetailDto } from '../dtos/job-detail.dto';
+import { JobResponseDto } from '../../modules/jobs/public/dtos/job-response.dto';
+import { JobDetailDto } from '../../modules/jobs/public/dtos/job-detail.dto';
 
 type JobWithRelations = Prisma.JobGetPayload<{
     include: { employer: true; location: true; JobCategory: true };

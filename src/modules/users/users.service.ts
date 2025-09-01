@@ -14,7 +14,7 @@ import {
 } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import { randomUUID } from 'crypto';
-import { MailService } from '@common/mail/mail.service';
+import { MailService } from '@app/core/mail/mail.service';
 import slugify from 'slugify';
 
 @Injectable()

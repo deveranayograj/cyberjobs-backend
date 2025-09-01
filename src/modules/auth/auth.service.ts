@@ -8,8 +8,8 @@ import { JwtService } from '@nestjs/jwt';
 import bcrypt from 'bcryptjs';
 import { User, UserRole } from '@prisma/client';
 import { Response } from 'express';
-import { RedisService } from '@common/redis/redis.service';
-import { JWT_CONFIG } from '@common/config/jwt.config';
+import { RedisService } from '@app/core/redis/redis.service';
+import { JWT_CONFIG } from '@app/core/config/jwt.config';
 import { PrismaService } from '@prisma/prisma.service';
 
 interface JwtPayload {

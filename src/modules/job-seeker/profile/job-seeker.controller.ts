@@ -9,9 +9,9 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { JobSeekerService } from '@modules/job-seeker/profile/job-seeker.service';
-import { JwtAuthGuard } from '@common/guards/jwt-auth.guard';
-import { RolesGuard } from '@common/guards/roles.guard';
-import { Roles } from '@common/decorators/roles.decorator';
+import { JwtAuthGuard } from '@app/core/guards/jwt-auth.guard';
+import { RolesGuard } from '@app/core/guards/roles.guard';
+import { Roles } from '@app/shared/decorators/roles.decorator';
 import { UserRole } from '@prisma/client';
 
 // DTO imports

@@ -1,7 +1,7 @@
 import { IsEmail, IsNotEmpty, IsEnum } from 'class-validator';
 import { UserRole } from '@prisma/client';
-import { EmployerEmail } from '@common/validators/employer-email.validator';
-import { PasswordStrength } from '@common/validators/password-strength.validator';
+import { EmployerEmail } from '@app/shared/validators/employer-email.validator';
+import { PasswordStrength } from '@app/shared/validators/password-strength.validator';
 
 export class RegisterUserDto {
   @IsEmail({}, { message: 'Valid email is required' })

@@ -1,7 +1,7 @@
 // src/common/mail/mail.service.ts
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { Resend } from 'resend';
-import { AppLogger } from '@common/logger/logger.service';
+import { AppLogger } from '@app/core/logger/logger.service';
 import { verificationTemplate } from './templates/verification.template';
 
 @Injectable()

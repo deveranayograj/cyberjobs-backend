@@ -1,9 +1,9 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
-import { AppLogger } from '@common/logger/logger.service';
-import { LoggerInterceptor } from '@common/logger/logger.interceptor';
-import { AllExceptionsFilter } from '@common/logger/logger.filter';
-import { ValidationExceptionFilter } from '@common/filters/validation-exception.filter';
+import { AppLogger } from '@app/core/logger/logger.service';
+import { LoggerInterceptor } from '@app/core/logger/logger.interceptor';
+import { AllExceptionsFilter } from '@app/core/logger/logger.filter';
+import { ValidationExceptionFilter } from '@app/core/filters/validation-exception.filter';
 import {
   ValidationPipe,
   BadRequestException,

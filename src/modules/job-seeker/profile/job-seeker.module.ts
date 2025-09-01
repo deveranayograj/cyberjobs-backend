@@ -3,8 +3,8 @@ import { JobSeekerService } from '@modules/job-seeker/profile/job-seeker.service
 import { JobSeekerController } from '@modules/job-seeker/profile/job-seeker.controller';
 import { PrismaService } from '@prisma/prisma.service';
 import { AuthModule } from '@modules/auth/auth.module';
-import { JwtAuthGuard } from '@common/guards/jwt-auth.guard';
-import { RolesGuard } from '@common/guards/roles.guard';
+import { JwtAuthGuard } from '@app/core/guards/jwt-auth.guard';
+import { RolesGuard } from '@app/core/guards/roles.guard';
 
 @Module({
   imports: [AuthModule],

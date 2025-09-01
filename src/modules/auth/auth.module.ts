@@ -5,9 +5,9 @@ import { UsersModule } from '@modules/users/users.module';
 import { EmployerModule } from '@modules/employer/verification/employer.module'; // ADD IF USING EmployerService
 import { PrismaService } from '@prisma/prisma.service';
 import { JwtModule } from '@nestjs/jwt';
-import { JwtStrategy } from '@common/strategies/jwt.strategy';
-import { RedisModule } from '@common/redis/redis.module';
-import { JWT_CONFIG } from '@common/config/jwt.config';
+import { JwtStrategy } from '@app/core/strategies/jwt.strategy';
+import { RedisModule } from '@app/core/redis/redis.module';
+import { JWT_CONFIG } from '@app/core/config/jwt.config';
 
 @Module({
   imports: [

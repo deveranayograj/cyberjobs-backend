@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException, Logger } from '@nestjs/common';
 import { PrismaService } from '@prisma/prisma.service';
 import { FilterJobsDto } from './dtos/filter-jobs.dto';
-import { serializeJobList, serializeJobDetail } from './helpers/serialize-job.helper';
+import { serializeJobList, serializeJobDetail } from '../../../shared/helpers/serialize-job.helper';
 import { Prisma } from '@prisma/client';
 
 type JobWithRelations = Prisma.JobGetPayload<{

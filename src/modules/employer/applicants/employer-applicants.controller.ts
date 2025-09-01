@@ -11,9 +11,9 @@ import {
     Patch,
 } from '@nestjs/common';
 import { EmployerApplicantsService } from './employer-applicants.service';
-import { JwtAuthGuard } from '@common/guards/jwt-auth.guard';
-import { RolesGuard } from '@common/guards/roles.guard';
-import { Roles } from '@common/decorators/roles.decorator';
+import { JwtAuthGuard } from '@app/core/guards/jwt-auth.guard';
+import { RolesGuard } from '@app/core/guards/roles.guard';
+import { Roles } from '@app/shared/decorators/roles.decorator';
 import { UserRole, ApplicationStatus } from '@prisma/client';
 import type { Request } from 'express';
 import { IsEnum } from 'class-validator';

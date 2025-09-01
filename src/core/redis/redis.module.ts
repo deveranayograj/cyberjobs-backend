@@ -4,7 +4,7 @@ import {
   RedisModuleOptions,
 } from '@nestjs-modules/ioredis';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { RedisService } from '@common/redis/redis.service';
+import { RedisService } from '@app/core/redis/redis.service';
 
 @Global() // ✅ Make RedisService available globally
 @Module({

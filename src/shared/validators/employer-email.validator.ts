@@ -1,6 +1,6 @@
 import { registerDecorator, ValidationOptions, ValidatorConstraint, ValidatorConstraintInterface, ValidationArguments } from 'class-validator';
 import { UserRole } from '@prisma/client';
-import { BLOCKED_EMAIL_DOMAINS } from '@common/config/blocked-domains.config';
+import { BLOCKED_EMAIL_DOMAINS } from '@app/core/config/blocked-domains.config';
 
 interface RoleAware {
   role: UserRole;

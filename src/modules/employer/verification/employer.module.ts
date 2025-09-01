@@ -3,8 +3,8 @@ import { EmployerController } from '@modules/employer/verification/employer.cont
 import { EmployerService } from '@modules/employer/verification/employer.service';
 import { PrismaService } from '@prisma/prisma.service';
 import { AuthModule } from '@modules/auth/auth.module';
-import { JwtAuthGuard } from '@common/guards/jwt-auth.guard';
-import { RolesGuard } from '@common/guards/roles.guard';
+import { JwtAuthGuard } from '@app/core/guards/jwt-auth.guard';
+import { RolesGuard } from '@app/core/guards/roles.guard';
 
 @Module({
   imports: [forwardRef(() => AuthModule)],

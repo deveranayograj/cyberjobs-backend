@@ -1,8 +1,8 @@
 import { Controller, Get, Put, Body, Req, UseGuards } from '@nestjs/common';
 import { EmployerProfileService } from './employer-profile.service';
-import { JwtAuthGuard } from '@common/guards/jwt-auth.guard';
-import { RolesGuard } from '@common/guards/roles.guard';
-import { Roles } from '@common/decorators/roles.decorator';
+import { JwtAuthGuard } from '@app/core/guards/jwt-auth.guard';
+import { RolesGuard } from '@app/core/guards/roles.guard';
+import { Roles } from '@app/shared/decorators/roles.decorator';
 import { UserRole } from '@prisma/client';
 import { UpdateEmployerProfileDto } from './dtos/update-employer-profile.dto';
 import type { Request } from 'express';
