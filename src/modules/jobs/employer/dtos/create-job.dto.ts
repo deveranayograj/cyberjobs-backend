@@ -18,8 +18,8 @@ import {
   ApplyTypeEnum,
   WorkModeEnum,
   JobStatusEnum,
-} from '@modules/jobs/enums';
-import { AddScreeningQuestionDto } from '@modules/jobs/dtos/add-screening-question.dto';
+} from '@modules/jobs/employer/enums';
+import { AddScreeningQuestionDto } from '@modules/jobs/employer/dtos/add-screening-question.dto';
 
 export class CreateJobDto {
   @IsString() title: string;

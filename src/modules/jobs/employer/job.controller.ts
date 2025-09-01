@@ -7,21 +7,21 @@ import {
   Body,
   UseGuards,
 } from '@nestjs/common';
-import { JobService } from './job.service';
+import { JobService } from '@modules/jobs/employer/job.service';
 import { JwtAuthGuard } from '@common/guards/jwt-auth.guard';
 import { RolesGuard } from '@common/guards/roles.guard';
 import { Roles } from '@common/decorators/roles.decorator';
 import { UserRole } from '@prisma/client';
 
-import { CreateJobDto } from './dtos/create-job.dto';
-import { UpdateJobDto } from './dtos/update-job.dto';
-import { ChangeJobStatusDto } from './dtos/change-status.dto';
+import { CreateJobDto } from '@modules/jobs/employer/dtos/create-job.dto';
+import { UpdateJobDto } from '@modules/jobs/employer/dtos/update-job.dto';
+import { ChangeJobStatusDto } from '@modules/jobs/employer/dtos/change-status.dto';
 
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(UserRole.EMPLOYER)
 @Controller('jobs')
 export class JobController {
-  constructor(private readonly jobService: JobService) {}
+  constructor(private readonly jobService: JobService) { }
 
   private parseBigInt(value?: string, name?: string): bigint {
     if (!value) throw new Error(`${name ?? 'ID'} missing`);

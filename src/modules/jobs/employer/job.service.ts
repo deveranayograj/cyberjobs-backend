@@ -6,9 +6,9 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '@prisma/prisma.service';
 import { Job, JobStatus, Prisma, EmployerOnboardingStep, QuestionType } from '@prisma/client';
-import { CreateJobDto } from './dtos/create-job.dto';
-import { UpdateJobDto } from './dtos/update-job.dto';
-import { ChangeJobStatusDto } from './dtos/change-status.dto';
+import { CreateJobDto } from '@modules/jobs/employer/dtos/create-job.dto';
+import { UpdateJobDto } from '@modules/jobs/employer/dtos/update-job.dto';
+import { ChangeJobStatusDto } from '@modules/jobs/employer/dtos/change-status.dto';
 
 @Injectable()
 export class JobService {

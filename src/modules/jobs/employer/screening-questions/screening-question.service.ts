@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { PrismaService } from '../../../prisma/prisma.service';
-import { AddScreeningQuestionDto } from '../dtos/add-screening-question.dto';
-import { UpdateScreeningQuestionDto } from '../dtos/update-screening-question.dto';
+import { PrismaService } from '@prisma/prisma.service';
+import { AddScreeningQuestionDto } from '@modules/jobs/employer/dtos/add-screening-question.dto';
+import { UpdateScreeningQuestionDto } from '@modules/jobs/employer/dtos/update-screening-question.dto';
 import { QuestionType } from '@prisma/client';
 
 @Injectable()

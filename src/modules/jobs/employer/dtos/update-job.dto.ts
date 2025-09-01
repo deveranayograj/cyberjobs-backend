@@ -1,6 +1,6 @@
-import { PartialType } from '@nestjs/swagger'; // 
-import { CreateJobDto } from './create-job.dto';
-import { AddScreeningQuestionDto } from '@modules/jobs/dtos/add-screening-question.dto';
+import { PartialType } from '@nestjs/swagger';
+import { CreateJobDto } from '@modules/jobs/employer/dtos/create-job.dto';
+import { AddScreeningQuestionDto } from '@modules/jobs/employer/dtos/add-screening-question.dto';
 import { IsOptional, IsArray, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
 

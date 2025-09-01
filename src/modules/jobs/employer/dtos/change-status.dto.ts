@@ -1,5 +1,5 @@
 import { IsEnum } from 'class-validator';
-import { JobStatusEnum } from '../enums/job-status.enum';
+import { JobStatusEnum } from '@modules/jobs/employer/enums/job-status.enum';
 
 export class ChangeJobStatusDto {
   @IsEnum(JobStatusEnum)

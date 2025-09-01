@@ -6,7 +6,7 @@ import { LoggerModule } from '@common/logger/logger.module';
 import { JobSeekerModule } from '@modules/job-seeker/profile/job-seeker.module';
 import { EmployerModule } from '@modules/employer/verification/employer.module';
 import { RedisModule } from '@common/redis/redis.module';
-import { JobModule } from '@modules/jobs/job.module';
+import { JobModule } from '@modules/jobs/employer/job.module';
 import { ApplyModule } from '@modules/job-seeker/apply/apply.module';
 import { EmployerProfileModule } from '@modules/employer/profile/employer-profile.module';
 import { EmployerApplicantsModule } from '@modules/employer/applicants/employer-applicants.module';

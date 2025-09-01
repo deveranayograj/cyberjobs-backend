@@ -9,13 +9,13 @@ import {
   Body,
   ParseIntPipe,
 } from '@nestjs/common';
-import { ScreeningQuestionService } from './screening-question.service';
-import { AddScreeningQuestionDto } from '../dtos/add-screening-question.dto';
-import { UpdateScreeningQuestionDto } from '../dtos/update-screening-question.dto';
+import { ScreeningQuestionService } from '@modules/jobs/employer/screening-questions/screening-question.service';
+import { AddScreeningQuestionDto } from '@modules/jobs/employer/dtos/add-screening-question.dto';
+import { UpdateScreeningQuestionDto } from '@modules/jobs/employer/dtos/update-screening-question.dto';
 
 @Controller('jobs/screening-questions')
 export class ScreeningQuestionController {
-  constructor(private readonly service: ScreeningQuestionService) {}
+  constructor(private readonly service: ScreeningQuestionService) { }
 
   @Post(':jobId')
   create(
