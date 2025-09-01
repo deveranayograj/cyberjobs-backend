@@ -1,25 +1,25 @@
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
-import { SESClient, SendEmailCommand } from '@aws-sdk/client-ses';
+import { Resend } from 'resend';
 import { AppLogger } from '@common/logger/logger.service';
 
 @Injectable()
 export class MailService {
-  private sesClient: SESClient;
+  private resend: Resend;
   private fromEmail: string;
 
   constructor(private readonly logger: AppLogger) {
-    this.logger.log('Initializing MailService with SES...', 'MailService');
+    this.logger.log('Initializing MailService with Resend...', 'MailService');
 
-    if (!process.env.AWS_REGION || !process.env.EMAIL_FROM) {
+    if (!process.env.RESEND_API_KEY || !process.env.EMAIL_FROM) {
       this.logger.error(
-        'AWS_REGION or EMAIL_FROM missing in .env',
+        'RESEND_API_KEY or EMAIL_FROM missing in .env',
         '',
         'MailService',
       );
-      throw new Error('AWS_REGION and EMAIL_FROM must be set in .env');
+      throw new Error('RESEND_API_KEY and EMAIL_FROM must be set in .env');
     }
 
-    this.sesClient = new SESClient({ region: process.env.AWS_REGION });
+    this.resend = new Resend(process.env.RESEND_API_KEY);
     this.fromEmail = process.env.EMAIL_FROM;
 
     this.logger.log(
@@ -34,27 +34,24 @@ export class MailService {
       'MailService',
     );
 
-    const params = {
-      Destination: {
-        ToAddresses: [to], // SES sandbox requires verified email
-      },
-      Message: {
-        Body: {
-          Html: { Data: html },
-        },
-        Subject: { Data: subject },
-      },
-      Source: this.fromEmail,
-    };
-
     try {
-      const command = new SendEmailCommand(params);
-      const response = await this.sesClient.send(command);
+      const { data, error } = await this.resend.emails.send({
+        from: this.fromEmail,
+        to,
+        subject,
+        html,
+      });
+
+      if (error) {
+        this.logger.error('Error sending email', JSON.stringify(error), 'MailService');
+        throw new InternalServerErrorException('Failed to send email');
+      }
+
       this.logger.log('Email sent successfully', 'MailService');
-      this.logger.debug(JSON.stringify(response), 'MailService');
+      this.logger.debug(JSON.stringify(data), 'MailService');
     } catch (err) {
       this.logger.error(
-        'Error sending email',
+        'Exception while sending email',
         JSON.stringify(err),
         'MailService',
       );

@@ -1,11 +1,6 @@
-import {
-  registerDecorator,
-  ValidationOptions,
-  ValidatorConstraint,
-  ValidatorConstraintInterface,
-  ValidationArguments,
-} from 'class-validator';
+import { registerDecorator, ValidationOptions, ValidatorConstraint, ValidatorConstraintInterface, ValidationArguments } from 'class-validator';
 import { UserRole } from '@prisma/client';
+import { BLOCKED_EMAIL_DOMAINS } from '@common/config/blocked-domains.config';
 
 interface RoleAware {
   role: UserRole;
@@ -16,23 +11,19 @@ export class EmployerEmailConstraint implements ValidatorConstraintInterface {
   validate(email: string, args: ValidationArguments) {
     if (!email) return false;
 
-    // Cast object to RoleAware to safely access role
     const obj = args.object as RoleAware;
     const role = obj.role;
 
-    // Only validate if role is EMPLOYER
     if (role === UserRole.EMPLOYER) {
-      const forbiddenDomains = ['google.com', 'yahoo.com'];
       const domain = email.split('@')[1]?.toLowerCase();
-      return !forbiddenDomains.includes(domain);
+      return domain ? !BLOCKED_EMAIL_DOMAINS.includes(domain) : false;
     }
 
-    // If role is SEEKER, allow any email
     return true;
   }
 
   defaultMessage(args: ValidationArguments) {
-    return 'Employer email cannot be from google.com or yahoo.com';
+    return 'Employer email cannot be from free/public providers (e.g., Gmail, Yahoo, Outlook)';
   }
 }
 
