@@ -1,4 +1,3 @@
-// src/modules/employer/applicants/dtos/applicant-response.dto.ts
 import { ApplicationStatus } from '@prisma/client';
 
 export class ApplicantResponseDto {
