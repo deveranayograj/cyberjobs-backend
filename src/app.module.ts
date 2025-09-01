@@ -7,7 +7,9 @@ import { JobSeekerModule } from '@modules/job-seeker/profile/job-seeker.module';
 import { EmployerModule } from '@modules/employer/verification/employer.module';
 import { RedisModule } from '@common/redis/redis.module';
 import { JobModule } from '@modules/jobs/job.module';
-import { ApplyModule } from '@modules/job-seeker/apply/apply.module'; // ✅ Import ApplyModule
+import { ApplyModule } from '@modules/job-seeker/apply/apply.module';
+import { EmployerProfileModule } from '@modules/employer/profile/employer-profile.module';
+import { EmployerApplicantsModule } from '@modules/employer/applicants/employer-applicants.module';
 
 @Module({
   imports: [
@@ -19,7 +21,9 @@ import { ApplyModule } from '@modules/job-seeker/apply/apply.module'; // ✅ Imp
     EmployerModule,
     RedisModule,
     JobModule,
-    ApplyModule, // ✅ Register ApplyModule here
+    ApplyModule,
+    EmployerProfileModule,
+    EmployerApplicantsModule,
   ],
 })
-export class AppModule {}
+export class AppModule { }

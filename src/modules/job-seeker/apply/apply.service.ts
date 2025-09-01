@@ -1,7 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
-/* eslint-disable @typescript-eslint/no-unsafe-call */
-
 import {
   Injectable,
   NotFoundException,
@@ -24,8 +20,12 @@ export class ApplyService {
       });
       if (!jobSeeker) throw new NotFoundException('Job Seeker not found');
 
+      const jobId = BigInt(dto.jobId);
+      const resumeId = dto.resumeId ? BigInt(dto.resumeId) : undefined;
+
       const job = await this.prisma.job.findUnique({
-        where: { id: dto.jobId },
+        where: { id: jobId },
+        include: { screeningQuestions: true },
       });
       if (!job) throw new NotFoundException('Job not found');
 
@@ -34,27 +34,48 @@ export class ApplyService {
       }
 
       const existingApplication = await this.prisma.jobApplication.findFirst({
-        where: { jobId: dto.jobId, jobSeekerId: jobSeeker.id },
+        where: {
+          jobId,
+          jobSeekerId: jobSeeker.id,
+          NOT: { status: 'WITHDRAWN' },
+        },
       });
       if (existingApplication)
         throw new BadRequestException('Already applied to this job');
 
+      const answersData = dto.answers?.map(a => {
+        const questionExists = job.screeningQuestions.some(
+          q => q.id === BigInt(a.questionId),
+        );
+        if (!questionExists)
+          throw new BadRequestException(`Invalid questionId: ${a.questionId}`);
+        return { questionId: BigInt(a.questionId), answer: a.answer };
+      });
+
       const application = await this.prisma.jobApplication.create({
         data: {
-          jobId: dto.jobId,
+          jobId,
           jobSeekerId: jobSeeker.id,
-          resumeId: dto.resumeId ? BigInt(dto.resumeId) : undefined,
+          resumeId,
           coverLetter: dto.coverLetter,
           source: dto.source,
-          stageHistory: [{ status: 'APPLIED', date: new Date() }],
+          appliedAt: new Date(),
+          stageHistory: [{ status: 'APPLIED', date: new Date().toISOString() }],
+          answers: answersData ? { create: answersData } : undefined,
         },
         include: {
-          job: { select: { title: true, employer: { select: { companyName: true } } } },
+          job: {
+            select: {
+              title: true,
+              employer: { select: { companyName: true } },
+            },
+          },
+          answers: true,
         },
       });
 
       await this.prisma.job.update({
-        where: { id: job.id },
+        where: { id: jobId },
         data: { applicationsCount: { increment: 1 } },
       });
 
@@ -74,14 +95,16 @@ export class ApplyService {
       if (!jobSeeker) throw new NotFoundException('Job Seeker not found');
 
       const applicationId = BigInt(dto.applicationId);
-      const application = await this.prisma.jobApplication.findUnique({
-        where: { id: applicationId },
-      });
-      if (!application) throw new NotFoundException('Application not found');
-      if (application.jobSeekerId !== jobSeeker.id)
-        throw new BadRequestException('Not authorized');
 
-      return await this.prisma.jobApplication.update({
+      const application = await this.prisma.jobApplication.findFirst({
+        where: { id: applicationId, jobSeekerId: jobSeeker.id },
+      });
+
+      if (!application) throw new NotFoundException('Application not found');
+      if (application.status === 'WITHDRAWN')
+        throw new BadRequestException('Application is already withdrawn');
+
+      const updated = await this.prisma.jobApplication.update({
         where: { id: applicationId },
         data: {
           status: 'WITHDRAWN',
@@ -90,49 +113,82 @@ export class ApplyService {
             ...(Array.isArray(application.stageHistory)
               ? application.stageHistory
               : []),
-            { status: 'WITHDRAWN', date: new Date() },
+            { status: 'WITHDRAWN', date: new Date().toISOString() },
           ],
         },
       });
+
+      await this.prisma.job.update({
+        where: { id: application.jobId },
+        data: { applicationsCount: { decrement: 1 } },
+      });
+
+      return updated;
     } catch (err) {
       console.error('Failed to withdraw application:', err);
+      if (err instanceof NotFoundException || err instanceof BadRequestException) {
+        throw err;
+      }
       throw new InternalServerErrorException('Failed to withdraw application');
     }
   }
 
   /** ================= List Applications ================= */
+  /** ================= List Applications ================= */
   async listApplications(userId: bigint) {
     try {
-      return await this.prisma.jobApplication.findMany({
-        where: { jobSeekerId: userId },
+      const jobSeeker = await this.prisma.jobSeeker.findUnique({
+        where: { userId },
+      });
+
+      if (!jobSeeker) throw new NotFoundException('Job Seeker not found');
+
+      const applications = await this.prisma.jobApplication.findMany({
+        where: { jobSeekerId: jobSeeker.id },
         include: {
-          job: { select: { title: true, employer: { select: { companyName: true } } } },
+          job: {
+            select: {
+              title: true,
+              employer: { select: { companyName: true } },
+            },
+          },
+          answers: true,
         },
         orderBy: { appliedAt: 'desc' },
       });
+
+      return applications;
     } catch (err) {
       console.error('Failed to list applications:', err);
       throw new InternalServerErrorException('Failed to list applications');
     }
   }
 
+
   /** ================= Get Application by ID ================= */
   async getApplication(userId: bigint, applicationId: bigint) {
-    try {
-      const application = await this.prisma.jobApplication.findUnique({
-        where: { id: applicationId },
-        include: {
-          job: { select: { title: true, employer: { select: { companyName: true } } } },
+    const jobSeeker = await this.prisma.jobSeeker.findUnique({
+      where: { userId },
+    });
+
+    if (!jobSeeker) throw new NotFoundException('Job Seeker not found');
+
+    const application = await this.prisma.jobApplication.findFirst({
+      where: { id: applicationId, jobSeekerId: jobSeeker.id },
+      include: {
+        job: {
+          select: {
+            title: true,
+            employer: { select: { companyName: true } },
+          },
         },
-      });
+        answers: true,
+      },
+    });
 
-      if (!application || application.jobSeekerId !== userId)
-        throw new NotFoundException('Application not found');
+    if (!application) throw new NotFoundException('Application not found');
 
-      return application;
-    } catch (err) {
-      console.error('Failed to fetch application:', err);
-      throw new InternalServerErrorException('Failed to fetch application');
-    }
+    return application;
   }
+
 }

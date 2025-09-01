@@ -46,23 +46,25 @@ export class JobService {
       if ((dto.applyType === 'DIRECT' || dto.applyType === 'EXTERNAL') && !dto.applyUrl) {
         throw new InternalServerErrorException('applyUrl is required for this applyType');
       }
-
       if (dto.applyType !== 'PRE_SCREENING') {
         dto.screeningQuestions = undefined; // ignore if not PRE_SCREENING
       }
 
       const slug = `${dto.title.toLowerCase().replace(/\s+/g, '-').replace(/[^\w\-]+/g, '')}-${Date.now()}`;
 
+      // Safe BigInt parsing
       let jobCategoryConnect: Prisma.JobCategoryCreateNestedOneWithoutJobsInput | undefined;
-      if (dto.jobCategoryId) {
-        const category = await this.prisma.jobCategory.findUnique({ where: { id: BigInt(dto.jobCategoryId) } });
+      if (dto.jobCategoryId !== undefined && dto.jobCategoryId !== null) {
+        const categoryId = typeof dto.jobCategoryId === 'bigint' ? dto.jobCategoryId : BigInt(dto.jobCategoryId);
+        const category = await this.prisma.jobCategory.findUnique({ where: { id: categoryId } });
         if (!category) throw new NotFoundException('Job category not found');
         jobCategoryConnect = { connect: { id: category.id } };
       }
 
       let locationConnect: Prisma.JobLocationCreateNestedOneWithoutJobsInput | undefined;
-      if (dto.locationId) {
-        const location = await this.prisma.jobLocation.findUnique({ where: { id: BigInt(dto.locationId) } });
+      if (dto.locationId !== undefined && dto.locationId !== null) {
+        const locationId = typeof dto.locationId === 'bigint' ? dto.locationId : BigInt(dto.locationId);
+        const location = await this.prisma.jobLocation.findUnique({ where: { id: locationId } });
         if (!location) throw new NotFoundException('Job location not found');
         locationConnect = { connect: { id: location.id } };
       }
@@ -135,12 +137,14 @@ export class JobService {
       const data: Prisma.JobUpdateInput = {};
 
       for (const key of Object.keys(dto)) {
-        if (key === 'jobCategoryId' && dto[key] !== undefined) {
-          const category = await this.prisma.jobCategory.findUnique({ where: { id: BigInt(dto[key]) } });
+        if (key === 'jobCategoryId' && dto[key] !== undefined && dto[key] !== null) {
+          const categoryId = typeof dto[key] === 'bigint' ? dto[key] : BigInt(dto[key]);
+          const category = await this.prisma.jobCategory.findUnique({ where: { id: categoryId } });
           if (!category) throw new NotFoundException('Job category not found');
           data.JobCategory = { connect: { id: category.id } };
-        } else if (key === 'locationId' && dto[key] !== undefined) {
-          const location = await this.prisma.jobLocation.findUnique({ where: { id: BigInt(dto[key]) } });
+        } else if (key === 'locationId' && dto[key] !== undefined && dto[key] !== null) {
+          const locationId = typeof dto[key] === 'bigint' ? dto[key] : BigInt(dto[key]);
+          const location = await this.prisma.jobLocation.findUnique({ where: { id: locationId } });
           if (!location) throw new NotFoundException('Job location not found');
           data.location = { connect: { id: location.id } };
         } else if (key === 'screeningQuestions' && dto[key]) {
