@@ -7,7 +7,7 @@ export class RegisterUserDto {
   @IsEmail({}, { message: 'Valid email is required' })
   @IsNotEmpty({ message: 'Email is required' })
   @EmployerEmail({
-    message: 'Employer email cannot be from free/public providers (e.g., Gmail, Yahoo, Outlook, etc.)',
+    message: 'Employer email cannot be from free / public providers (e.g., Gmail, Yahoo, Outlook, etc.)',
   })
   email: string;
 
