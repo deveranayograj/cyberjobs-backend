@@ -3,6 +3,7 @@ import { AppModule } from './app.module';
 import { AppLogger } from '@app/core/logger/logger.service';
 import { LoggerInterceptor } from '@app/core/logger/logger.interceptor';
 import { GlobalExceptionFilter } from '@app/core/filters/global-exception.filter';
+import { ResponseInterceptor } from '@app/core/interceptors/response.interceptor';
 import {
   ValidationPipe,
   BadRequestException,
@@ -25,6 +26,9 @@ async function bootstrap() {
 
   // ✅ Logger interceptor for requests/responses
   app.useGlobalInterceptors(new LoggerInterceptor(logger));
+
+  // ✅ Global response interceptor for structured success responses
+  app.useGlobalInterceptors(new ResponseInterceptor());
 
   // ✅ Global exception filter for all errors
   app.useGlobalFilters(new GlobalExceptionFilter(logger));

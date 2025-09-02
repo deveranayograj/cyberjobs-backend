@@ -7,27 +7,33 @@ import {
   Body,
   Query,
   UseGuards,
+  Param,
 } from '@nestjs/common';
 import { JobSeekerService } from '@modules/job-seeker/profile/job-seeker.service';
 import { JwtAuthGuard } from '@app/core/guards/jwt-auth.guard';
 import { RolesGuard } from '@app/core/guards/roles.guard';
 import { Roles } from '@app/shared/decorators/roles.decorator';
 import { UserRole } from '@prisma/client';
+import { ParseBigIntQueryPipe } from '@app/core/pipes/parse-bigint-query.pipe';
+import { deepSerialize } from '@app/shared/utils/serialize.util';
+import { CurrentUserId } from '@app/shared/decorators/current-user-id.decorator';
 
 // DTO imports
-import { UpdateJobSeekerDto } from '@modules/job-seeker/profile/dtos/overview/update-job-seeker.dto';
-import { UpdateLinksDto } from '@modules/job-seeker/profile/dtos/overview/update-links.dto';
-import { AddSkillsDto } from '@modules/job-seeker/profile/dtos/skills/add-skills.dto';
-import { RemoveSkillsDto } from '@modules/job-seeker/profile/dtos/skills/remove-skills.dto';
-import { UploadResumeDto } from '@modules/job-seeker/profile/dtos/resumes/upload-resume.dto';
-import { AddExperienceDto } from '@modules/job-seeker/profile/dtos/experience/add-experience.dto';
-import { RemoveExperienceDto } from '@modules/job-seeker/profile/dtos/experience/remove-experience.dto';
-import { UpdateExperienceDto } from '@modules/job-seeker/profile/dtos/experience/update-experience.dto';
-import { AddEducationDto } from '@modules/job-seeker/profile/dtos/education/add-education.dto';
-import { RemoveEducationDto } from '@modules/job-seeker/profile/dtos/education/remove-education.dto';
-import { UpdateEducationDto } from '@modules/job-seeker/profile/dtos/education/update-education.dto';
-import { AddCertificationDto } from '@modules/job-seeker/profile/dtos/certifications/add-certification.dto';
-import { RemoveCertificationDto } from '@modules/job-seeker/profile/dtos/certifications/remove-certification.dto';
+import {
+  UpdateJobSeekerDto,
+  UpdateLinksDto,
+  AddSkillsDto,
+  RemoveSkillsDto,
+  UploadResumeDto,
+  AddExperienceDto,
+  RemoveExperienceDto,
+  UpdateExperienceDto,
+  AddEducationDto,
+  RemoveEducationDto,
+  UpdateEducationDto,
+  AddCertificationDto,
+  RemoveCertificationDto,
+} from './dtos/index';
 
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(UserRole.SEEKER)
@@ -35,187 +41,144 @@ import { RemoveCertificationDto } from '@modules/job-seeker/profile/dtos/certifi
 export class JobSeekerController {
   constructor(private readonly jobSeekerService: JobSeekerService) { }
 
-  /** ================= Helper to parse BigInt ================= */
-  private parseBigIntQuery(value?: string, name?: string): bigint {
-    if (!value) throw new Error(`${name ?? 'ID'} query parameter missing`);
-    try {
-      return BigInt(value);
-    } catch {
-      throw new Error(`${name ?? 'ID'} must be a valid bigint`);
-    }
-  }
-
-  /** ================= Helper: Deep serialize BigInt ================= */
-  private deepSerialize(obj: any): any {
-    if (obj === null || obj === undefined) return obj;
-    if (typeof obj === 'bigint') return obj.toString();
-    if (Array.isArray(obj)) return obj.map((item) => this.deepSerialize(item));
-    if (typeof obj === 'object') {
-      const res: any = {};
-      for (const key in obj) {
-        res[key] = this.deepSerialize(obj[key]);
-      }
-      return res;
-    }
-    return obj;
-  }
-
   /** ================= Overview & Links ================= */
   @Get('me')
-  async getProfile(@Query('userId') userId: string) {
-    const id = this.parseBigIntQuery(userId, 'userId');
-    const profile = await this.jobSeekerService.getProfile(id);
-    return this.deepSerialize(profile);
+  async getProfile(@CurrentUserId() userId: bigint) {
+    const profile = await this.jobSeekerService.getProfile(userId);
+    return deepSerialize(profile);
   }
 
   @Patch()
   async updateOverview(
-    @Query('userId') userId: string,
+    @CurrentUserId() userId: bigint,
     @Body() dto: UpdateJobSeekerDto,
   ) {
-    const id = this.parseBigIntQuery(userId, 'userId');
-    const updated = await this.jobSeekerService.updateOverview(id, dto);
-    return this.deepSerialize(updated);
+    const updated = await this.jobSeekerService.updateOverview(userId, dto);
+    return deepSerialize(updated);
   }
 
   @Patch('links')
   async updateLinks(
-    @Query('userId') userId: string,
+    @CurrentUserId() userId: bigint,
     @Body() dto: UpdateLinksDto,
   ) {
-    const id = this.parseBigIntQuery(userId, 'userId');
-    const updated = await this.jobSeekerService.updateLinks(id, dto);
-    return this.deepSerialize(updated);
+    const updated = await this.jobSeekerService.updateLinks(userId, dto);
+    return deepSerialize(updated);
   }
 
   /** ================= Skills ================= */
   @Post('skills')
-  async addSkills(@Query('userId') userId: string, @Body() dto: AddSkillsDto) {
-    const id = this.parseBigIntQuery(userId, 'userId');
-    const result = await this.jobSeekerService.addSkills(id, dto);
-    return this.deepSerialize(result);
+  async addSkills(@CurrentUserId() userId: bigint, @Body() dto: AddSkillsDto) {
+    const result = await this.jobSeekerService.addSkills(userId, dto);
+    return deepSerialize(result);
   }
 
   @Delete('skills')
   async removeSkills(
-    @Query('userId') userId: string,
+    @CurrentUserId() userId: bigint,
     @Body() dto: RemoveSkillsDto,
   ) {
-    const id = this.parseBigIntQuery(userId, 'userId');
-    const result = await this.jobSeekerService.removeSkills(id, dto);
-    return this.deepSerialize(result);
+    const result = await this.jobSeekerService.removeSkills(userId, dto);
+    return deepSerialize(result);
   }
 
   /** ================= Resumes ================= */
   @Post('resume')
   async uploadResume(
-    @Query('userId') userId: string,
+    @CurrentUserId() userId: bigint,
     @Body() dto: UploadResumeDto,
   ) {
-    const id = this.parseBigIntQuery(userId, 'userId');
-    const resume = await this.jobSeekerService.uploadResume(id, dto);
-    return this.deepSerialize(resume);
+    const resume = await this.jobSeekerService.uploadResume(userId, dto);
+    return deepSerialize(resume);
   }
 
   @Delete('resume')
   async deleteResume(
-    @Query('userId') userId: string,
-    @Query('resumeId') resumeId: string,
+    @CurrentUserId() userId: bigint,
+    @Query('resumeId', ParseBigIntQueryPipe) resumeId: bigint,
   ) {
-    const id = this.parseBigIntQuery(userId, 'userId');
-    const resId = this.parseBigIntQuery(resumeId, 'resumeId');
-    const result = await this.jobSeekerService.deleteResume(id, resId);
-    return this.deepSerialize(result);
+    const result = await this.jobSeekerService.deleteResume(userId, resumeId);
+    return deepSerialize(result);
   }
 
   /** ================= Experience ================= */
   @Post('experience')
   async addExperience(
-    @Query('userId') userId: string,
+    @CurrentUserId() userId: bigint,
     @Body() dto: AddExperienceDto,
   ) {
-    const id = this.parseBigIntQuery(userId, 'userId');
-    const exp = await this.jobSeekerService.addExperience(id, dto);
-    return this.deepSerialize(exp);
+    const exp = await this.jobSeekerService.addExperience(userId, dto);
+    return deepSerialize(exp);
   }
 
   @Delete('experience')
   async removeExperience(
-    @Query('userId') userId: string,
+    @CurrentUserId() userId: bigint,
     @Body() dto: RemoveExperienceDto,
   ) {
-    const id = this.parseBigIntQuery(userId, 'userId');
-    const result = await this.jobSeekerService.removeExperience(id, dto);
-    return this.deepSerialize(result);
+    const result = await this.jobSeekerService.removeExperience(userId, dto);
+    return deepSerialize(result);
   }
 
-  @Patch('experience')
+  @Patch('experience/:experienceId')
   async updateExperience(
-    @Query('userId') userId: string,
-    @Query('experienceId') experienceId: string,
+    @Param('experienceId', ParseBigIntQueryPipe) experienceId: bigint,
     @Body() dto: UpdateExperienceDto,
   ) {
-    const id = this.parseBigIntQuery(userId, 'userId');
-    const expId = this.parseBigIntQuery(experienceId, 'experienceId');
     const updated = await this.jobSeekerService.updateExperience(
-      id,
-      expId,
+      experienceId,
       dto,
     );
-    return this.deepSerialize(updated);
+    return deepSerialize(updated);
   }
 
   /** ================= Education ================= */
   @Post('education')
   async addEducation(
-    @Query('userId') userId: string,
+    @CurrentUserId() userId: bigint,
     @Body() dto: AddEducationDto,
   ) {
-    const id = this.parseBigIntQuery(userId, 'userId');
-    const edu = await this.jobSeekerService.addEducation(id, dto);
-    return this.deepSerialize(edu);
+    const edu = await this.jobSeekerService.addEducation(userId, dto);
+    return deepSerialize(edu);
   }
 
   @Delete('education')
   async removeEducation(
-    @Query('userId') userId: string,
+    @CurrentUserId() userId: bigint,
     @Body() dto: RemoveEducationDto,
   ) {
-    const id = this.parseBigIntQuery(userId, 'userId');
-    const result = await this.jobSeekerService.removeEducation(id, dto);
-    return this.deepSerialize(result);
+    const result = await this.jobSeekerService.removeEducation(userId, dto);
+    return deepSerialize(result);
   }
 
-  @Patch('education')
+  @Patch('education/:educationId')
   async updateEducation(
-    @Query('userId') userId: string,
-    @Query('educationId') educationId: string,
+    @Param('educationId', ParseBigIntQueryPipe) educationId: bigint,
     @Body() dto: UpdateEducationDto,
   ) {
-    const id = this.parseBigIntQuery(userId, 'userId');
-    const eduId = this.parseBigIntQuery(educationId, 'educationId');
-    const updated = await this.jobSeekerService.updateEducation(id, eduId, dto);
-    return this.deepSerialize(updated);
+    const updated = await this.jobSeekerService.updateEducation(
+      educationId,
+      dto,
+    );
+    return deepSerialize(updated);
   }
 
   /** ================= Certifications ================= */
   @Post('certification')
   async addCertification(
-    @Query('userId') userId: string,
+    @CurrentUserId() userId: bigint,
     @Body() dto: AddCertificationDto,
   ) {
-    const id = this.parseBigIntQuery(userId, 'userId');
-    const cert = await this.jobSeekerService.addCertification(id, dto);
-    return this.deepSerialize(cert);
+    const cert = await this.jobSeekerService.addCertification(userId, dto);
+    return deepSerialize(cert);
   }
 
   @Delete('certification')
   async removeCertification(
-    @Query('userId') userId: string,
+    @CurrentUserId() userId: bigint,
     @Body() dto: RemoveCertificationDto,
   ) {
-    const id = this.parseBigIntQuery(userId, 'userId');
-    const result = await this.jobSeekerService.removeCertification(id, dto);
-    return this.deepSerialize(result);
+    const result = await this.jobSeekerService.removeCertification(userId, dto);
+    return deepSerialize(result);
   }
 }

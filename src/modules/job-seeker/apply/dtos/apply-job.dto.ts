@@ -1,24 +1,24 @@
 // src/modules/job-seeker/apply/dtos/apply-job.dto.ts
-import { IsNotEmpty, IsOptional, IsString, IsEnum, IsNumber, IsArray, ValidateNested } from 'class-validator';
-import { Type } from 'class-transformer';
+import { IsNotEmpty, IsOptional, IsString, IsEnum, IsArray, ValidateNested } from 'class-validator';
+import { Type, Transform } from 'class-transformer';
 import { JobApplicationSource } from '@prisma/client';
 
 class AnswerDto {
   @IsNotEmpty()
-  @IsNumber({}, { message: 'questionId must be a number' })
+  @Transform(({ value }) => BigInt(value))
   questionId: bigint;
 
   @IsNotEmpty()
-  answer: string | string[]; // supports short-answer or multiple-choice
+  answer: string | string[];
 }
 
 export class ApplyJobDto {
   @IsNotEmpty()
-  @IsNumber({}, { message: 'jobId must be a number' })
+  @Transform(({ value }) => BigInt(value))
   jobId: bigint;
 
   @IsOptional()
-  @IsNumber({}, { message: 'resumeId must be a number' })
+  @Transform(({ value }) => (value !== undefined ? BigInt(value) : undefined))
   resumeId?: bigint;
 
   @IsOptional()

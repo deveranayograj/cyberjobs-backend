@@ -1,8 +1,9 @@
 // src/modules/job-seeker/apply/dtos/withdraw-application.dto.ts
-import { IsNotEmpty, IsNumber } from 'class-validator';
+import { IsNotEmpty } from 'class-validator';
+import { Transform } from 'class-transformer';
 
 export class WithdrawApplicationDto {
   @IsNotEmpty()
-  @IsNumber({}, { message: 'applicationId must be a number' })
+  @Transform(({ value }) => BigInt(value))
   applicationId: bigint;
 }

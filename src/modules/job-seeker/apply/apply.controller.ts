@@ -6,7 +6,6 @@ import {
   Body,
   Param,
   UseGuards,
-  Req,
 } from '@nestjs/common';
 import { ApplyService } from './apply.service';
 import { JwtAuthGuard } from '@app/core/guards/jwt-auth.guard';
@@ -15,7 +14,9 @@ import { Roles } from '@app/shared/decorators/roles.decorator';
 import { UserRole } from '@prisma/client';
 import { ApplyJobDto } from './dtos/apply-job.dto';
 import { WithdrawApplicationDto } from './dtos/withdraw-application.dto';
-import { ParseBigIntPipe } from '@app/core/pipes/parse-bigint.pipe';
+import { ParseBigIntQueryPipe } from '@app/core/pipes/parse-bigint-query.pipe';
+import { deepSerialize } from '@app/shared/utils/serialize.util';
+import { CurrentUserId } from '@app/shared/decorators/current-user-id.decorator';
 
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(UserRole.SEEKER)
@@ -23,62 +24,36 @@ import { ParseBigIntPipe } from '@app/core/pipes/parse-bigint.pipe';
 export class ApplyController {
   constructor(private readonly applyService: ApplyService) { }
 
-  private deepSerialize(obj: any): any {
-    if (obj === null || obj === undefined) return obj;
-    if (typeof obj === 'bigint') return obj.toString();
-    if (obj instanceof Date) return obj.toISOString();
-    if (Array.isArray(obj)) return obj.map(item => this.deepSerialize(item));
-    if (typeof obj === 'object') {
-      const res: any = {};
-      for (const key in obj) {
-        res[key] = this.deepSerialize(obj[key]);
-      }
-      return res;
-    }
-    return obj;
-  }
-
   @Post('apply')
-  async applyJob(@Req() req, @Body() dto: ApplyJobDto) {
-    const userId = BigInt(req.user.id ?? req.user.sub);
-    console.log('[ApplyController] applyJob called', { userId, dto });
-
+  async applyJob(
+    @CurrentUserId() userId: bigint,
+    @Body() dto: ApplyJobDto
+  ) {
     const result = await this.applyService.applyJob(userId, dto);
-
-    console.log('[ApplyController] applyJob result', result);
-    return this.deepSerialize(result);
+    return deepSerialize(result);
   }
 
   @Patch('withdraw')
-  async withdraw(@Req() req, @Body() dto: WithdrawApplicationDto) {
-    const userId = BigInt(req.user.id ?? req.user.sub);
-    console.log('[ApplyController] withdraw called', { userId, dto });
-
+  async withdraw(
+    @CurrentUserId() userId: bigint,
+    @Body() dto: WithdrawApplicationDto
+  ) {
     const result = await this.applyService.withdrawApplication(userId, dto);
-
-    console.log('[ApplyController] withdraw result', result);
-    return this.deepSerialize(result);
+    return deepSerialize(result);
   }
 
   @Get()
-  async listApplications(@Req() req) {
-    const userId = BigInt(req.user.id ?? req.user.sub);
-    console.log('[ApplyController] listApplications called', { userId });
-
+  async listApplications(@CurrentUserId() userId: bigint) {
     const apps = await this.applyService.listApplications(userId);
-
-    console.log('[ApplyController] listApplications result', apps.length, 'applications');
-    return this.deepSerialize(apps);
+    return deepSerialize(apps);
   }
 
   @Get(':id')
-  async getApplication(@Req() req, @Param('id', ParseBigIntPipe) id: bigint) {
-    const userId = BigInt(req.user.id ?? req.user.sub);
-    console.log('[ApplyController] getApplication called', { userId, applicationId: id });
-
+  async getApplication(
+    @CurrentUserId() userId: bigint,
+    @Param('id', ParseBigIntQueryPipe) id: bigint,
+  ) {
     const app = await this.applyService.getApplication(userId, id);
-
-    console.log('[ApplyController] getApplication result', app);
-    return this.deepSerialize(app);
+    return deepSerialize(app);
   }
 }

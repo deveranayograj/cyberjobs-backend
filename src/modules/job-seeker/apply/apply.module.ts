@@ -3,13 +3,16 @@ import { ApplyService } from './apply.service';
 import { ApplyController } from './apply.controller';
 import { PrismaService } from '@prisma/prisma.service';
 import { AuthModule } from '@modules/auth/auth.module';
-import { JwtAuthGuard } from '@app/core/guards/jwt-auth.guard';
-import { RolesGuard } from '@app/core/guards/roles.guard';
+import { ApplyRepository } from './apply.repository'; // ✅ add repository if exists
 
 @Module({
   imports: [AuthModule],
   controllers: [ApplyController],
-  providers: [ApplyService, PrismaService, JwtAuthGuard, RolesGuard],
+  providers: [
+    ApplyService,
+    ApplyRepository, // ✅ include repository if service depends on it
+    PrismaService,
+  ],
   exports: [ApplyService],
 })
 export class ApplyModule { }
