@@ -2,8 +2,7 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { AppLogger } from '@app/core/logger/logger.service';
 import { LoggerInterceptor } from '@app/core/logger/logger.interceptor';
-import { AllExceptionsFilter } from '@app/core/logger/logger.filter';
-import { ValidationExceptionFilter } from '@app/core/filters/validation-exception.filter';
+import { GlobalExceptionFilter } from '@app/core/filters/global-exception.filter';
 import {
   ValidationPipe,
   BadRequestException,
@@ -24,12 +23,13 @@ async function bootstrap() {
   // ✅ Add cookie-parser middleware
   app.use(cookieParser());
 
+  // ✅ Logger interceptor for requests/responses
   app.useGlobalInterceptors(new LoggerInterceptor(logger));
-  app.useGlobalFilters(
-    new AllExceptionsFilter(logger),
-    new ValidationExceptionFilter(),
-  );
 
+  // ✅ Global exception filter for all errors
+  app.useGlobalFilters(new GlobalExceptionFilter(logger));
+
+  // ✅ Validation pipe for all DTOs
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
@@ -37,11 +37,11 @@ async function bootstrap() {
       transform: true,
       exceptionFactory: (errors: ValidationError[] = []) => {
         const messages = errors.map((err) =>
-          Object.values(err.constraints ?? {}).join(', '),
+          Object.values(err.constraints ?? {}).join(', ')
         );
         return new BadRequestException(messages);
       },
-    }),
+    })
   );
 
   await app.listen(3000);
