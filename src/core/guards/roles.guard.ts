@@ -8,13 +8,13 @@ import {
 import { Reflector } from '@nestjs/core';
 import { ROLES_KEY } from '@app/shared/decorators/roles.decorator';
 import { UserRole } from '@prisma/client';
-import { JwtPayload } from '@app/core/strategies/jwt.strategy';
+import { JwtPayload } from '@shared/interfaces/jwt-payload.interface';
 
 @Injectable()
 export class RolesGuard implements CanActivate {
   private readonly logger = new Logger(RolesGuard.name);
 
-  constructor(private reflector: Reflector) {}
+  constructor(private reflector: Reflector) { }
 
   canActivate(context: ExecutionContext): boolean {
     // Read roles from both handler (method) and class level

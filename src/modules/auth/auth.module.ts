@@ -8,6 +8,9 @@ import { JwtModule } from '@nestjs/jwt';
 import { JwtStrategy } from '@app/core/strategies/jwt.strategy';
 import { RedisModule } from '@app/core/redis/redis.module';
 import { JWT_CONFIG } from '@app/core/config/jwt.config';
+import { AuthRepository } from '@modules/auth/auth.repository';
+import { TokenService } from '@shared/services/token.service';
+import { BlacklistModule } from '@core/redis/blacklist.module';
 
 @Module({
   imports: [
@@ -18,8 +21,10 @@ import { JWT_CONFIG } from '@app/core/config/jwt.config';
       signOptions: { expiresIn: JWT_CONFIG.access.expiresIn },
     }),
     RedisModule,
+    BlacklistModule
   ],
-  providers: [AuthService, PrismaService, JwtStrategy],
+  providers: [AuthService, AuthRepository, PrismaService, TokenService, JwtStrategy],
   controllers: [AuthController],
+  exports: [AuthService],
 })
-export class AuthModule {}
+export class AuthModule { }

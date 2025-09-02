@@ -1,95 +1,67 @@
 import {
   Injectable,
   UnauthorizedException,
-  BadRequestException,
 } from '@nestjs/common';
 import { UsersService } from '@modules/users/users.service';
-import { JwtService } from '@nestjs/jwt';
-import bcrypt from 'bcryptjs';
-import { User, UserRole } from '@prisma/client';
 import { Response } from 'express';
+import { UserRole } from '@prisma/client';
 import { RedisService } from '@app/core/redis/redis.service';
-import { JWT_CONFIG } from '@app/core/config/jwt.config';
-import { PrismaService } from '@prisma/prisma.service';
+import { AuthRepository } from '@modules/auth/auth.repository';
 
-interface JwtPayload {
-  sub: string;
-  email: string;
-  role: UserRole;
-}
+import {
+  InvalidCredentialsException,
+  EmailNotVerifiedException,
+  EmployerProfileNotFoundException,
+  GoogleLoginNotAllowedException,
+} from '@app/core/exceptions/auth.exceptions';
+
+import {
+  AuthResponseDto,
+  RefreshResponseDto,
+} from '@shared/dtos/auth-response.dto';
+
+import { toAuthUserDto } from '@shared/mappers/user.mapper';
+import { COOKIE_CONFIG } from '@app/core/config/cookie.config';
+import { TokenService } from '@shared/services/token.service';
+import { BlacklistService } from '@app/core/redis/blacklist.service';
+
+import bcrypt from 'bcryptjs';
 
 @Injectable()
 export class AuthService {
   constructor(
     private readonly usersService: UsersService,
-    private readonly prisma: PrismaService,
-    private readonly jwtService: JwtService,
+    private readonly authRepository: AuthRepository,
     private readonly redisService: RedisService,
-  ) {}
+    private readonly tokenService: TokenService,
+    private readonly blacklistService: BlacklistService,
+  ) { }
 
-  /** Deep serialize object to convert all BigInt values to strings */
-  private deepSerialize(obj: any): any {
-    if (obj === null || obj === undefined) return obj;
-    if (typeof obj === 'bigint') return obj.toString();
-    if (Array.isArray(obj)) return obj.map((item) => this.deepSerialize(item));
-    if (typeof obj === 'object') {
-      const res: any = {};
-      for (const key in obj) {
-        res[key] = this.deepSerialize(obj[key]);
-      }
-      return res;
-    }
-    return obj;
-  }
-
-  private generateAccessToken(user: User) {
-    const payload: JwtPayload = {
-      sub: user.id.toString(),
-      email: user.email,
-      role: user.role,
-    };
-    return this.jwtService.sign(payload, JWT_CONFIG.access);
-  }
-
-  private generateRefreshToken(user: User) {
-    const payload = { sub: user.id.toString() };
-    return this.jwtService.sign(payload, JWT_CONFIG.refresh);
-  }
-
-  async login(email: string, password: string, res: Response) {
+  async login(
+    email: string,
+    password: string,
+    res: Response,
+  ): Promise<AuthResponseDto> {
     const user = await this.usersService.findByEmail(email);
-    if (!user) throw new UnauthorizedException('Invalid credentials');
-
-    if (!user.password)
-      throw new UnauthorizedException(
-        'Please use Google login for this account',
-      );
+    if (!user || !user.password) throw new InvalidCredentialsException();
 
     const passwordMatch = await bcrypt.compare(password, user.password);
-    if (!passwordMatch) throw new UnauthorizedException('Invalid credentials');
+    if (!passwordMatch) throw new InvalidCredentialsException();
+    if (!user.isVerified) throw new EmailNotVerifiedException();
 
-    // Check email verification first
-    if (!user.isVerified) throw new UnauthorizedException('Email not verified');
-
-    let accessToken: string;
     let redirectUrl: string | null = null;
 
-    // Special handling for employer onboarding
+    // Employer onboarding flow
     if (user.role === UserRole.EMPLOYER) {
-      const employer = await this.prisma.employer.findUnique({
-        where: { userId: user.id },
-      });
-      if (!employer)
-        throw new UnauthorizedException('Employer profile not found');
+      const employer = await this.authRepository.findEmployerByUserId(user.id);
+      if (!employer) throw new EmployerProfileNotFoundException();
 
-      // Determine next step based on onboarding
       switch (employer.onboardingStep) {
         case 'EMAIL_VERIFIED':
           redirectUrl = '/employer/setup';
           break;
         case 'SETUP_STARTED':
         case 'SETUP_COMPLETE':
-          // Allow login but redirect to next setup step
           redirectUrl = '/employer/kyc';
           break;
         case 'KYC_PENDING':
@@ -101,30 +73,36 @@ export class AuthService {
       }
     }
 
-    accessToken = this.generateAccessToken(user);
-    const refreshToken = this.generateRefreshToken(user);
+    // Job seeker redirect flow
+    if (user.role === UserRole.SEEKER) {
+      redirectUrl = '/user/profile';
+    }
+
+    const { token: accessToken, expiresIn } =
+      this.tokenService.generateAccessToken(user);
+    const refreshToken = this.tokenService.generateRefreshToken(user);
 
     await this.usersService.saveRefreshToken(user.id, refreshToken);
-
-    res.cookie('refreshToken', refreshToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-    });
+    res.cookie('refreshToken', refreshToken, COOKIE_CONFIG);
 
     return {
       accessToken,
-      user: this.deepSerialize(user),
-      redirectUrl, // frontend can redirect to this if present
+      expiresIn,
+      user: toAuthUserDto(user),
+      redirectUrl,
     };
   }
 
-  async loginWithGoogle(email: string, fullName: string, res: Response) {
+  async loginWithGoogle(
+    email: string,
+    fullName: string,
+    res: Response,
+  ): Promise<AuthResponseDto> {
     let user = await this.usersService.findByEmail(email);
 
-    if (user && user.role !== UserRole.SEEKER)
-      throw new BadRequestException('Google login allowed for Job-Seeker only');
+    if (user && user.role !== UserRole.SEEKER) {
+      throw new GoogleLoginNotAllowedException();
+    }
 
     if (!user) {
       const result = await this.usersService.createUser(
@@ -137,30 +115,27 @@ export class AuthService {
       user.isVerified = true;
     }
 
-    const accessToken = this.generateAccessToken(user);
-    const refreshToken = this.generateRefreshToken(user);
+    const { token: accessToken, expiresIn } =
+      this.tokenService.generateAccessToken(user);
+    const refreshToken = this.tokenService.generateRefreshToken(user);
 
     await this.usersService.saveRefreshToken(user.id, refreshToken);
+    res.cookie('refreshToken', refreshToken, COOKIE_CONFIG);
 
-    res.cookie('refreshToken', refreshToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-    });
-
-    return { accessToken, user: this.deepSerialize(user) };
+    return {
+      accessToken,
+      expiresIn,
+      user: toAuthUserDto(user),
+      redirectUrl: '/user/profile',
+    };
   }
 
-  // Only showing updated / added methods
   async verifyEmail(token: string) {
     const user = await this.usersService.verifyUserByToken(token);
 
     let redirectUrl = '/dashboard';
     if (user.role === UserRole.EMPLOYER) {
-      const employer = await this.prisma.employer.findUnique({
-        where: { userId: user.id },
-      });
+      const employer = await this.authRepository.findEmployerByUserId(user.id);
       switch (employer.onboardingStep) {
         case 'EMAIL_VERIFIED':
         case 'SETUP_STARTED':
@@ -181,59 +156,53 @@ export class AuthService {
     return { message: 'Email verified successfully', redirectUrl };
   }
 
-  async refreshToken(refreshToken: string, res: Response) {
+  async refreshToken(
+    refreshToken: string,
+    res: Response,
+  ): Promise<RefreshResponseDto> {
     if (!refreshToken) throw new UnauthorizedException('Refresh token missing');
 
-    try {
-      const payload = this.jwtService.verify<{ sub: string }>(refreshToken, {
-        secret: JWT_CONFIG.refresh.secret,
-      });
-      const user = await this.usersService.findById(BigInt(payload.sub));
-      if (!user) throw new UnauthorizedException('User not found');
-
-      if (user.refreshToken !== refreshToken) {
-        throw new UnauthorizedException('Refresh token mismatch');
-      }
-
-      const newAccessToken = this.generateAccessToken(user);
-      const newRefreshToken = this.generateRefreshToken(user);
-
-      await this.usersService.saveRefreshToken(user.id, newRefreshToken);
-
-      res.cookie('refreshToken', newRefreshToken, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'strict',
-        maxAge: 7 * 24 * 60 * 60 * 1000,
-      });
-
-      return { accessToken: newAccessToken, user: this.deepSerialize(user) };
-    } catch {
-      throw new UnauthorizedException('Invalid refresh token');
+    const payload = this.tokenService.verifyRefreshToken(refreshToken);
+    const user = await this.usersService.findById(BigInt(payload.sub));
+    if (!user) throw new UnauthorizedException('User not found');
+    if (user.refreshToken !== refreshToken) {
+      throw new UnauthorizedException('Refresh token mismatch');
     }
+
+    const { token: accessToken, expiresIn } =
+      this.tokenService.generateAccessToken(user);
+    const newRefreshToken = this.tokenService.generateRefreshToken(user);
+
+    await this.usersService.saveRefreshToken(user.id, newRefreshToken);
+    res.cookie('refreshToken', newRefreshToken, COOKIE_CONFIG);
+
+    return {
+      accessToken,
+      expiresIn,
+      user: toAuthUserDto(user),
+    };
   }
 
   async logout(userId: bigint, res: Response, accessToken?: string) {
     await this.usersService.clearRefreshToken(userId);
 
     if (accessToken) {
-      const decoded = this.jwtService.decode(accessToken);
-      if (decoded && typeof decoded === 'object' && 'exp' in decoded) {
+      const decoded = this.tokenService.decodeToken(accessToken);
+      if (decoded && 'exp' in decoded) {
         const exp = (decoded as { exp?: number }).exp;
         const expiresInMs = exp ? exp * 1000 - Date.now() : 0;
         if (expiresInMs > 0) {
           const expiresInSeconds = Math.floor(expiresInMs / 1000);
-          await this.redisService.set(
-            `bl_${accessToken}`,
-            userId.toString(),
+          await this.blacklistService.addToken(
+            accessToken,
+            userId,
             expiresInSeconds,
           );
         }
       }
     }
 
-    res.clearCookie('refreshToken', { httpOnly: true, sameSite: 'strict' });
-
+    res.clearCookie('refreshToken', COOKIE_CONFIG);
     return { message: 'Logged out successfully' };
   }
 }

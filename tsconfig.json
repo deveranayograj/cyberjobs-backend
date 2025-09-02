@@ -15,14 +15,27 @@
     "outDir": "./dist",
     "baseUrl": "./",
     "paths": {
-      "@common/*": ["src/common/*"],
-      "@modules/*": ["src/modules/*"],
-      "@prisma/*": ["src/prisma/*"],
-      "@app/*": ["src/*"]
+      "@core/*": [
+        "src/core/*"
+      ],
+      "@shared/*": [
+        "src/shared/*"
+      ],
+      "@modules/*": [
+        "src/modules/*"
+      ],
+      "@prisma/*": [
+        "src/prisma/*"
+      ],
+      "@app/*": [
+        "src/*"
+      ]
     },
     "incremental": true,
     "forceConsistentCasingInFileNames": true,
     "skipLibCheck": true
   },
-  "include": ["src/**/*.ts"]
+  "include": [
+    "src/**/*.ts"
+  ]
 }
