@@ -1,3 +1,5 @@
+// src/modules/employer/verification/employer.controller.ts
+
 import { Controller, Post, Get, Body, UseGuards, Req } from '@nestjs/common';
 import { EmployerService } from '@modules/employer/verification/employer.service';
 import { CreateEmployerDto } from '@modules/employer/verification/dtos/create-employer.dto';
@@ -7,7 +9,6 @@ import { RolesGuard } from '@app/core/guards/roles.guard';
 import { Roles } from '@app/shared/decorators/roles.decorator';
 import { UserRole } from '@prisma/client';
 import type { Request } from 'express';
-import { PrismaService } from '@prisma/prisma.service';
 
 interface RequestWithUser extends Request {
   user: { sub: string; role: UserRole };
@@ -15,10 +16,7 @@ interface RequestWithUser extends Request {
 
 @Controller('employer')
 export class EmployerController {
-  constructor(
-    private readonly employerService: EmployerService,
-    private readonly prisma: PrismaService,
-  ) {}
+  constructor(private readonly employerService: EmployerService) { }
 
   /** --------------------- EMPLOYER ROUTES --------------------- */
 
@@ -63,30 +61,7 @@ export class EmployerController {
   @Roles(UserRole.EMPLOYER)
   @Get('onboarding-redirect')
   async getOnboardingRedirect(@Req() req: RequestWithUser) {
-    const employer = await this.prisma.employer.findUnique({
-      where: { userId: BigInt(req.user.sub) },
-    });
-
-    if (!employer) return { redirectUrl: '/dashboard' };
-
-    let redirectUrl = '/dashboard';
-    switch (employer.onboardingStep) {
-      case 'EMAIL_VERIFIED':
-      case 'SETUP_STARTED':
-        redirectUrl = '/employer/setup';
-        break;
-      case 'SETUP_COMPLETE':
-        redirectUrl = '/employer/kyc';
-        break;
-      case 'KYC_PENDING':
-        redirectUrl = '/employer/kyc-status';
-        break;
-      case 'VERIFIED':
-        redirectUrl = '/employer/dashboard';
-        break;
-    }
-
-    return { redirectUrl };
+    return this.employerService.getOnboardingRedirect(BigInt(req.user.sub));
   }
 
   /** --------------------- ADMIN ROUTES --------------------- */
