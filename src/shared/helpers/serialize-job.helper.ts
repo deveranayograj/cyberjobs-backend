@@ -1,4 +1,5 @@
 import { Prisma } from '@prisma/client';
+import { deepSerialize } from '../utils/serialize.util';
 import { JobResponseDto } from '../../modules/jobs/public/dtos/job-response.dto';
 import { JobDetailDto } from '../../modules/jobs/public/dtos/job-detail.dto';
 
@@ -6,46 +7,57 @@ type JobWithRelations = Prisma.JobGetPayload<{
     include: { employer: true; location: true; JobCategory: true };
 }>;
 
-export const serializeJobList = (job: JobWithRelations): JobResponseDto => ({
-    id: job.id.toString(),
-    title: job.title,
-    slug: job.slug,
-    companyName: job.employer.companyName,
-    location: job.location?.city || job.employer.location || 'N/A',
-    workMode: job.workMode,
-    employmentType: job.employmentType,
-    salaryMin: job.salaryMin,
-    salaryMax: job.salaryMax,
-    currency: job.currency,
-    postedAt: job.postedAt,
-    isFeatured: job.isFeatured,
-    isUrgent: job.isUrgent,
-});
+/** Serialize job for list endpoints */
+export const serializeJobList = (job: JobWithRelations): JobResponseDto => {
+    const serialized = deepSerialize(job);
 
-export const serializeJobDetail = (job: JobWithRelations): JobDetailDto => ({
-    id: job.id.toString(),
-    title: job.title,
-    slug: job.slug,
-    companyName: job.employer.companyName,
-    companyLogo: job.employer.companyLogo,
-    location: job.location?.city || job.employer.location || 'N/A',
-    workMode: job.workMode,
-    employmentType: job.employmentType,
-    experience: job.experience,
-    salaryMin: job.salaryMin,
-    salaryMax: job.salaryMax,
-    currency: job.currency,
-    description: job.description,
-    requirements: job.requirements,
-    responsibilities: job.responsibilities,
-    benefits: job.benefits,
-    postedAt: job.postedAt,
-    validTill: job.validTill,
-    applyType: job.applyType,
-    applyUrl: job.applyUrl,
-    applicationEmail: job.applicationEmail,
-    tags: job.tags,
-    technologies: job.technologies,
-    certifications: job.certifications,
-    category: job.JobCategory ? `${job.JobCategory.main} - ${job.JobCategory.sub}` : undefined,
-});
+    return {
+        id: serialized.id.toString(),
+        title: serialized.title,
+        slug: serialized.slug,
+        companyName: serialized.employer.companyName,
+        location: serialized.location?.city || serialized.employer.location || 'N/A',
+        workMode: serialized.workMode,
+        employmentType: serialized.employmentType,
+        salaryMin: serialized.salaryMin,
+        salaryMax: serialized.salaryMax,
+        currency: serialized.currency,
+        postedAt: serialized.postedAt,
+        isFeatured: serialized.isFeatured,
+        isUrgent: serialized.isUrgent,
+        category: serialized.JobCategory ? `${serialized.JobCategory.main} - ${serialized.JobCategory.sub}` : undefined,
+    };
+};
+
+/** Serialize job for detail endpoints */
+export const serializeJobDetail = (job: JobWithRelations): JobDetailDto => {
+    const serialized = deepSerialize(job);
+
+    return {
+        id: serialized.id.toString(),
+        title: serialized.title,
+        slug: serialized.slug,
+        companyName: serialized.employer.companyName,
+        companyLogo: serialized.employer.companyLogo,
+        location: serialized.location?.city || serialized.employer.location || 'N/A',
+        workMode: serialized.workMode,
+        employmentType: serialized.employmentType,
+        experience: serialized.experience,
+        salaryMin: serialized.salaryMin,
+        salaryMax: serialized.salaryMax,
+        currency: serialized.currency,
+        description: serialized.description,
+        requirements: serialized.requirements,
+        responsibilities: serialized.responsibilities,
+        benefits: serialized.benefits,
+        postedAt: serialized.postedAt,
+        validTill: serialized.validTill,
+        applyType: serialized.applyType,
+        applyUrl: serialized.applyUrl,
+        applicationEmail: serialized.applicationEmail,
+        tags: serialized.tags,
+        technologies: serialized.technologies,
+        certifications: serialized.certifications,
+        category: serialized.JobCategory ? `${serialized.JobCategory.main} - ${serialized.JobCategory.sub}` : undefined,
+    };
+};
