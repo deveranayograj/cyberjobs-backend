@@ -1,16 +1,15 @@
+// src/modules/jobs/employer/job.module.ts
+
 import { Module } from '@nestjs/common';
-import { JobService } from '@modules/jobs/employer/job.service';
-import { JobController } from '@modules/jobs/employer/job.controller';
-import { PrismaService } from '@prisma/prisma.service';
-import { AuthModule } from '@modules/auth/auth.module';
-import { ScreeningQuestionModule } from '@modules/jobs/employer/screening-questions/screening-question.module';
-import { JwtAuthGuard } from '@app/core/guards/jwt-auth.guard';
-import { RolesGuard } from '@app/core/guards/roles.guard';
+import { PrismaModule } from '@prisma/prisma.module';
+import { JobController } from './job.controller';
+import { JobService } from './job.service';
+import { JobRepository } from './job.repository';
 
 @Module({
-  imports: [AuthModule, ScreeningQuestionModule],
+  imports: [PrismaModule],
   controllers: [JobController],
-  providers: [JobService, PrismaService, JwtAuthGuard, RolesGuard],
-  exports: [JobService],
+  providers: [JobService, JobRepository],
+  exports: [JobRepository], // 👈 optional export if other modules need it
 })
 export class JobModule { }
