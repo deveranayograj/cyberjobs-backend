@@ -141,6 +141,33 @@ enum ProficiencyLevel {
 }
 
 // ==========================
+// Notification System
+// ==========================
+enum NotificationType {
+  JOB_ALERT // New job posted matching skills/category/location
+  APPLICATION_SUBMITTED // Candidate successfully applied
+  APPLICATION_STATUS // Shortlisted / Rejected / Hired / Withdrawn
+  INTERVIEW_SCHEDULED // Interview date/time/location
+  INTERVIEW_UPDATED // Interview rescheduled or canceled
+  PROFILE_REMINDER // Profile incomplete, missing skills/certifications
+  PLATFORM_ANNOUNCEMENT // System updates, new features, tips
+  NEW_APPLICANT // Candidate applied to job
+  APPLICATION_UPDATE // Candidate updated profile or withdrew
+  JOB_EXPIRY_ALERT // Job nearing expiry
+  JOB_APPROVAL // Job pending admin approval
+  GROUPED_APPLICANTS // e.g., “5 new applicants applied”
+  FEEDBACK_RECEIVED // Candidate feedback or system suggestions
+  BOOKMARK_ALERT // Candidate bookmarked job / employer notified
+  CERTIFICATION_ALERT // Candidate earned new certification
+  BUG_BOUNTY_ALERT // Candidate achieved new ranking
+}
+
+enum NotificationStatus {
+  UNREAD
+  READ
+}
+
+// ==========================
 // Core Models
 // ==========================
 model User {
@@ -160,10 +187,11 @@ model User {
   deletedAt       DateTime?
   refreshToken    String?
 
-  jobSeeker JobSeeker?
-  employer  Employer?
-  providers UserProvider[]
-  tokens    Token[]
+  jobSeeker    JobSeeker?
+  employer     Employer?
+  providers    UserProvider[]
+  tokens       Token[]
+  Notification Notification[]
 }
 
 // ==========================
@@ -519,4 +547,23 @@ model JobApplicationAnswer {
 
   application JobApplication    @relation(fields: [applicationId], references: [id])
   question    ScreeningQuestion @relation(fields: [questionId], references: [id])
+}
+
+model Notification {
+  id        BigInt @id @default(dbgenerated("floor(random()*1000000000+1000000000)"))
+  uniqueKey String @unique @default(uuid())
+
+  userId BigInt
+  user   User   @relation(fields: [userId], references: [id])
+
+  type      NotificationType
+  message   String
+  status    NotificationStatus @default(UNREAD)
+  relatedId BigInt? // Optional reference to job, application, etc.
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId, status])
+  @@index([createdAt])
 }

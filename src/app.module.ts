@@ -11,6 +11,7 @@ import { ApplyModule } from '@modules/job-seeker/apply/apply.module';
 import { EmployerProfileModule } from '@modules/employer/profile/employer-profile.module';
 import { EmployerApplicantsModule } from '@modules/employer/applicants/employer-applicants.module';
 import { PublicModule } from '@modules/jobs/public/public.module';
+import { NotificationsModule } from '@modules/notifications/notifications.module'; // ✅ Add this
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { PublicModule } from '@modules/jobs/public/public.module';
     EmployerProfileModule,
     EmployerApplicantsModule,
     PublicModule,
+    NotificationsModule, // ✅ Add here
   ],
 })
 export class AppModule { }

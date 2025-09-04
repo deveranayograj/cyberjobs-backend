@@ -1,8 +1,8 @@
-// src/common/mail/mail.service.ts
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { Resend } from 'resend';
 import { AppLogger } from '@app/core/logger/logger.service';
 import { verificationTemplate } from './templates/verification.template';
+import { notificationTemplate } from './templates/notification.template';
 
 @Injectable()
 export class MailService {
@@ -28,6 +28,7 @@ export class MailService {
 
       if (error) throw new InternalServerErrorException('Failed to send email');
     } catch (err) {
+      this.logger.error('Failed to send email', err);
       throw new InternalServerErrorException('Failed to send email');
     }
   }
@@ -36,5 +37,10 @@ export class MailService {
     const verifyUrl = `${process.env.APP_URL}/auth/verify-email?token=${token}`;
     const html = verificationTemplate(verifyUrl);
     await this.sendMail(email, 'Verify your Cykruit account', html);
+  }
+
+  async sendNotificationEmail(email: string, message: string) {
+    const html = notificationTemplate(message);
+    await this.sendMail(email, 'New Notification', html);
   }
 }

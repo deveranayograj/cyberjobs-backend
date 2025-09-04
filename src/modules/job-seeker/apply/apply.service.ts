@@ -31,9 +31,13 @@ export class ApplyService {
           ? dto.answers.map(a => {
             const questionExists = job.screeningQuestions.some(q => q.id === BigInt(a.questionId));
             if (!questionExists) throw new BadRequestException(`Invalid questionId: ${a.questionId}`);
-            return { questionId: BigInt(a.questionId), answer: a.answer };
+            return {
+              questionId: BigInt(a.questionId),
+              answer: typeof a.answer === 'number' ? a.answer.toString() : a.answer,
+            };
           })
           : undefined;
+
 
       const application = await this.repo.createApplication({
         jobId,
