@@ -109,6 +109,7 @@ export class JobService {
   }
 
   /** ================= Update Job ================= */
+  /** ================= Update Job ================= */
   async updateJob(jobId: bigint, userId: bigint, dto: UpdateJobDto): Promise<Job> {
     try {
       const employer = await this.repo.findEmployerByUserId(userId);
@@ -134,8 +135,18 @@ export class JobService {
         };
       }
 
+      // 🔥 If title is being updated, regenerate slug
+      if (dto.title) {
+        const newSlug = `${dto.title
+          .toLowerCase()
+          .replace(/\s+/g, '-')
+          .replace(/[^\w\-]+/g, '')}-${Date.now()}`;
+
+        data.slug = newSlug;
+      }
+
       for (const key of Object.keys(dto)) {
-        if (!['jobCategoryId', 'locationId', 'screeningQuestions'].includes(key)) {
+        if (!['jobCategoryId', 'locationId', 'screeningQuestions', 'title'].includes(key)) {
           (data as any)[key] = (dto as any)[key];
         }
       }
@@ -151,6 +162,7 @@ export class JobService {
       throw new InternalServerErrorException('Failed to update job');
     }
   }
+
 
   /** ================= Change Job Status ================= */
   async changeStatus(jobId: bigint, userId: bigint, dto: ChangeJobStatusDto): Promise<Job> {

@@ -11,6 +11,19 @@ import {
 } from '@nestjs/common';
 import cookieParser from 'cookie-parser';
 
+function flattenValidationErrors(errors: ValidationError[]): string[] {
+  const result: string[] = [];
+  for (const err of errors) {
+    if (err.constraints) {
+      result.push(...Object.values(err.constraints));
+    }
+    if (err.children && err.children.length) {
+      result.push(...flattenValidationErrors(err.children));
+    }
+  }
+  return result;
+}
+
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
     bufferLogs: true,
@@ -40,9 +53,7 @@ async function bootstrap() {
       forbidNonWhitelisted: true,
       transform: true,
       exceptionFactory: (errors: ValidationError[] = []) => {
-        const messages = errors.map((err) =>
-          Object.values(err.constraints ?? {}).join(', ')
-        );
+        const messages = flattenValidationErrors(errors);
         return new BadRequestException(messages);
       },
     })
