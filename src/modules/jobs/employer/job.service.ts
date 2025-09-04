@@ -31,12 +31,12 @@ export class JobService {
   async createJob(userId: bigint, dto: CreateJobDto): Promise<Job> {
     try {
       const employer = await this.repo.findEmployerByUserId(userId);
-      if (!employer) {
-        throw new NotFoundException('Employer profile not found');
-      }
+      if (!employer) throw new NotFoundException('Employer profile not found');
 
       if (employer.onboardingStep !== EmployerOnboardingStep.VERIFIED) {
-        throw new UnauthorizedException('Complete company setup & KYC before creating jobs');
+        throw new UnauthorizedException(
+          'Complete company setup & KYC before creating jobs',
+        );
       }
 
       const jobCategoryConnect = dto.jobCategoryId
@@ -54,7 +54,7 @@ export class JobService {
       const jobData: Prisma.JobCreateInput = {
         title: dto.title,
         slug,
-        employer: { connect: { userId } }, // ✅ FIXED
+        employer: { connect: { id: employer.id } }, // ✅ employerId resolved
         industry: dto.industry,
         workMode: dto.workMode,
         employmentType: dto.employmentType,
@@ -104,18 +104,16 @@ export class JobService {
       if (err instanceof NotFoundException || err instanceof UnauthorizedException) {
         throw err;
       }
-
       throw new InternalServerErrorException('Failed to create job');
     }
   }
 
   /** ================= Update Job ================= */
-  async updateJob(
-    jobId: bigint,
-    employerId: bigint,
-    dto: UpdateJobDto,
-  ): Promise<Job> {
+  async updateJob(jobId: bigint, userId: bigint, dto: UpdateJobDto): Promise<Job> {
     try {
+      const employer = await this.repo.findEmployerByUserId(userId);
+      if (!employer) throw new NotFoundException('Employer profile not found');
+
       const data: Prisma.JobUpdateInput = {};
 
       if (dto.jobCategoryId) {
@@ -124,7 +122,6 @@ export class JobService {
       if (dto.locationId) {
         data.location = { connect: { id: BigInt(dto.locationId) } };
       }
-
       if (dto.screeningQuestions) {
         data.screeningQuestions = {
           deleteMany: {},
@@ -143,7 +140,7 @@ export class JobService {
         }
       }
 
-      const job = await this.repo.updateJob(jobId, employerId, data);
+      const job = await this.repo.updateJob(jobId, employer.id, data);
       return this.serialize(job);
     } catch (err) {
       console.error('Failed to update job:', err);
@@ -151,23 +148,17 @@ export class JobService {
       if (err instanceof NotFoundException || err instanceof UnauthorizedException) {
         throw err;
       }
-
       throw new InternalServerErrorException('Failed to update job');
     }
   }
 
   /** ================= Change Job Status ================= */
-  async changeStatus(
-    jobId: bigint,
-    employerId: bigint,
-    dto: ChangeJobStatusDto,
-  ): Promise<Job> {
+  async changeStatus(jobId: bigint, userId: bigint, dto: ChangeJobStatusDto): Promise<Job> {
     try {
-      const job = await this.repo.changeJobStatus(
-        jobId,
-        employerId,
-        dto.status as JobStatus,
-      );
+      const employer = await this.repo.findEmployerByUserId(userId);
+      if (!employer) throw new NotFoundException('Employer profile not found');
+
+      const job = await this.repo.changeJobStatus(jobId, employer.id, dto.status as JobStatus);
       return this.serialize(job);
     } catch (err) {
       console.error('Failed to change job status:', err);
@@ -175,7 +166,6 @@ export class JobService {
       if (err instanceof NotFoundException || err instanceof UnauthorizedException) {
         throw err;
       }
-
       throw new InternalServerErrorException('Failed to change job status');
     }
   }
@@ -183,27 +173,20 @@ export class JobService {
   /** ================= Get Jobs by Employer ================= */
   async getJobsByEmployer(userId: bigint): Promise<any[]> {
     try {
-      // 1️⃣ Resolve employerId from userId
       const employer = await this.repo.findEmployerByUserId(userId);
       if (!employer) throw new NotFoundException('Employer profile not found');
 
-      console.log(
-        `[Service] Resolved EmployerId: ${employer.id} for UserId: ${userId}`,
-      );
-
-      // 2️⃣ Get jobs using employerId
+      console.log(`[Service] Resolved EmployerId: ${employer.id} for UserId: ${userId}`);
       const jobs: Job[] = await this.repo.listEmployerJobs(employer.id);
 
       console.log(`[Service] Jobs fetched: ${jobs.length}`);
-
-      return deepSerialize(jobs); // ✅ BigInt -> string
+      return deepSerialize(jobs);
     } catch (err) {
       console.error('Failed to fetch jobs for employer:', err);
 
       if (err instanceof NotFoundException || err instanceof UnauthorizedException) {
         throw err;
       }
-
       throw new InternalServerErrorException('Failed to fetch jobs for employer');
     }
   }
@@ -211,16 +194,13 @@ export class JobService {
   /** ================= Get Job by ID ================= */
   async getJob(jobId: bigint, userId: bigint): Promise<any> {
     try {
-      // 1️⃣ Get employerId from userId
       const employer = await this.repo.findEmployerByUserId(userId);
       if (!employer) throw new NotFoundException('Employer profile not found');
 
-      // 2️⃣ Fetch job by jobId + employerId
       const job: Job | null = await this.repo.findJobById(jobId, employer.id);
       if (!job) throw new NotFoundException('Job not found');
 
       console.log(`[Service] Job fetched: ${job.title} (EmployerId: ${job.employerId})`);
-
       return deepSerialize(job);
     } catch (err) {
       console.error('Failed to fetch job:', err);
@@ -228,9 +208,7 @@ export class JobService {
       if (err instanceof NotFoundException || err instanceof UnauthorizedException) {
         throw err;
       }
-
       throw new InternalServerErrorException('Failed to fetch job');
     }
   }
-
 }

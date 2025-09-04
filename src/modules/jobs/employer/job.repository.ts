@@ -31,7 +31,6 @@ export class JobRepository {
         });
     }
 
-
     /** ================= Find Job by ID & Employer ================= */
     async findJobById(jobId: bigint, employerId: bigint): Promise<Job | null> {
         return this.prisma.job.findFirst({
@@ -83,7 +82,6 @@ export class JobRepository {
         });
     }
 
-
     /** ================= Screening Questions ================= */
     async addScreeningQuestions(
         jobId: bigint,
@@ -105,7 +103,10 @@ export class JobRepository {
         });
     }
 
-    async deleteScreeningQuestion(id: bigint, jobId: bigint): Promise<ScreeningQuestion> {
+    async deleteScreeningQuestion(
+        id: bigint,
+        jobId: bigint,
+    ): Promise<ScreeningQuestion> {
         return this.prisma.screeningQuestion.delete({
             where: { id },
         });
