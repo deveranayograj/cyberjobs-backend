@@ -6,6 +6,7 @@ import { Notification } from '@prisma/client';
 import { deepSerialize } from '@app/shared/utils/serialize.util';
 import { MailService } from '@core/mail/mail.service';
 import { UsersService } from '@modules/users/users.service';
+import { EmailType } from '@core/mail/mail.constants';
 
 @Injectable()
 export class NotificationsService {
@@ -22,16 +23,22 @@ export class NotificationsService {
         if (dto.sendEmail) {
             const user = await this.usersService.findById(dto.userId);
             if (user?.email) {
-                await this.mailService.sendMail(
+                // Generate job link only if relatedId exists
+                const link = dto.relatedId
+                    ? `${process.env.APP_URL}/jobs/${dto.relatedId}`
+                    : undefined;
+
+                await this.mailService.sendEmail(
                     user.email,
-                    'New Notification',
-                    `<p>${dto.message}</p>` // simple email body
+                    EmailType.NOTIFICATION,
+                    { message: `${user.fullName}, ${dto.message}`, link }
                 );
             }
         }
 
         return deepSerialize(notification); // ✅ serialize BigInt
     }
+
 
     async getUserNotifications(userId: bigint): Promise<Notification[]> {
         const notifications = await this.repo.findAllByUser(userId);
