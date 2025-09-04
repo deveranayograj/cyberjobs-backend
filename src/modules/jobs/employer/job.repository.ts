@@ -23,6 +23,15 @@ export class JobRepository {
         });
     }
 
+    /** ================= Find Employer by UserId ================= */
+    async findEmployerByUserId(userId: bigint) {
+        return this.prisma.employer.findUnique({
+            where: { userId },
+            include: { kycs: true },
+        });
+    }
+
+
     /** ================= Find Job by ID & Employer ================= */
     async findJobById(jobId: bigint, employerId: bigint): Promise<Job | null> {
         return this.prisma.job.findFirst({
@@ -64,13 +73,16 @@ export class JobRepository {
     }
 
     /** ================= List Jobs for Employer ================= */
-    async listEmployerJobs(employerId: bigint): Promise<Job[]> {
+    async listEmployerJobs(employerId: string | number | bigint): Promise<Job[]> {
+        const normalizedEmployerId = BigInt(employerId);
+
         return this.prisma.job.findMany({
-            where: { employerId },
+            where: { employerId: normalizedEmployerId },
             include: { screeningQuestions: true },
             orderBy: { createdAt: 'desc' },
         });
     }
+
 
     /** ================= Screening Questions ================= */
     async addScreeningQuestions(

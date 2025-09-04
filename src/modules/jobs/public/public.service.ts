@@ -1,17 +1,32 @@
 import { Injectable, NotFoundException, Logger } from '@nestjs/common';
-import { PublicRepository } from './public.repository';
+import { PrismaService } from '@prisma/prisma.service';
 import { FilterJobsDto } from './dtos/filter-jobs.dto';
 import { serializeJobList, serializeJobDetail } from '../../../shared/helpers/serialize-job.helper';
-import { Prisma, EmploymentType, WorkMode } from '@prisma/client';
+import { Prisma } from '@prisma/client';
+
+type JobWithRelations = Prisma.JobGetPayload<{
+    include: { employer: true; location: true; JobCategory: true };
+}>;
 
 @Injectable()
 export class PublicService {
     private readonly logger = new Logger(PublicService.name);
 
-    constructor(private readonly repo: PublicRepository) { }
+    constructor(private readonly prisma: PrismaService) { }
 
+    /** ================= List Jobs ================= */
     async listJobs(filter: FilterJobsDto) {
-        const { page = 1, limit = 20, search, category, location, employmentType, workMode } = filter;
+        const {
+            page = 1,
+            limit = 20,
+            search,
+            category,
+            location,
+            employmentType,
+            workMode,
+        } = filter;
+
+        this.logger.log(`Listing jobs with filter: ${JSON.stringify(filter)}`);
 
         const where: Prisma.JobWhereInput = {
             status: 'ACTIVE',
@@ -22,9 +37,20 @@ export class PublicService {
             location: location ? { is: { city: location } } : undefined,
         };
 
-        this.logger.debug(`Filtering jobs with where: ${JSON.stringify(where)}`);
+        this.logger.debug(`Prisma where clause: ${JSON.stringify(where)}`);
 
-        const { jobs, total } = await this.repo.findJobs(where, (page - 1) * limit, limit);
+        const [jobs, total] = await Promise.all([
+            this.prisma.job.findMany({
+                where,
+                include: { employer: true, location: true, JobCategory: true },
+                skip: (page - 1) * limit,
+                take: limit,
+                orderBy: { postedAt: 'desc' },
+            }) as Promise<JobWithRelations[]>,
+            this.prisma.job.count({ where }),
+        ]);
+
+        this.logger.log(`Found ${jobs.length} jobs out of ${total}`);
 
         return {
             data: jobs.map(serializeJobList),
@@ -38,13 +64,21 @@ export class PublicService {
         };
     }
 
+    /** ================= Get Job Detail ================= */
     async getJobDetail(slug: string) {
-        const job = await this.repo.findJobBySlug(slug);
+        this.logger.log(`Fetching job detail for slug: ${slug}`);
+
+        const job = await this.prisma.job.findUnique({
+            where: { slug },
+            include: { employer: true, location: true, JobCategory: true },
+        }) as JobWithRelations | null;
 
         if (!job) {
             this.logger.warn(`Job not found for slug: ${slug}`);
             throw new NotFoundException('Job not found');
         }
+
+        this.logger.log(`Returning job detail for: ${job.title}`);
 
         return serializeJobDetail(job);
     }

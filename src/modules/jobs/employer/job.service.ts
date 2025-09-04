@@ -10,7 +10,13 @@ import { CreateJobDto } from './dtos/create-job.dto';
 import { UpdateJobDto } from './dtos/update-job.dto';
 import { ChangeJobStatusDto } from './dtos/change-status.dto';
 import { deepSerialize } from '@app/shared/utils/serialize.util';
-import { Prisma, Job, QuestionType, EmployerOnboardingStep, JobStatus } from '@prisma/client';
+import {
+  Prisma,
+  Job,
+  QuestionType,
+  EmployerOnboardingStep,
+  JobStatus,
+} from '@prisma/client';
 
 @Injectable()
 export class JobService {
@@ -24,12 +30,12 @@ export class JobService {
   /** ================= Create Job ================= */
   async createJob(userId: bigint, dto: CreateJobDto): Promise<Job> {
     try {
-      // Validate employer (fetch jobs to validate existence)
-      const employerJobs = await this.repo.listEmployerJobs(userId);
-      if (!employerJobs) throw new NotFoundException('Employer profile not found');
+      const employer = await this.repo.findEmployerByUserId(userId);
+      if (!employer) {
+        throw new NotFoundException('Employer profile not found');
+      }
 
-      // TODO: Replace with actual employer verification check
-      if ((employerJobs as any)[0]?.employer?.onboardingStep !== EmployerOnboardingStep.VERIFIED) {
+      if (employer.onboardingStep !== EmployerOnboardingStep.VERIFIED) {
         throw new UnauthorizedException('Complete company setup & KYC before creating jobs');
       }
 
@@ -40,12 +46,15 @@ export class JobService {
         ? { connect: { id: BigInt(dto.locationId) } }
         : undefined;
 
-      const slug = `${dto.title.toLowerCase().replace(/\s+/g, '-').replace(/[^\w\-]+/g, '')}-${Date.now()}`;
+      const slug = `${dto.title
+        .toLowerCase()
+        .replace(/\s+/g, '-')
+        .replace(/[^\w\-]+/g, '')}-${Date.now()}`;
 
       const jobData: Prisma.JobCreateInput = {
         title: dto.title,
         slug,
-        employer: { connect: { id: userId } }, // userId = employerId
+        employer: { connect: { userId } }, // ✅ FIXED
         industry: dto.industry,
         workMode: dto.workMode,
         employmentType: dto.employmentType,
@@ -77,7 +86,6 @@ export class JobService {
         location: locationConnect,
       };
 
-      // Add screening questions
       let questions;
       if (dto.screeningQuestions?.length) {
         questions = dto.screeningQuestions.map((q) => ({
@@ -92,19 +100,31 @@ export class JobService {
       return this.serialize(job);
     } catch (err) {
       console.error('Failed to create job:', err);
+
+      if (err instanceof NotFoundException || err instanceof UnauthorizedException) {
+        throw err;
+      }
+
       throw new InternalServerErrorException('Failed to create job');
     }
   }
 
   /** ================= Update Job ================= */
-  async updateJob(jobId: bigint, employerId: bigint, dto: UpdateJobDto): Promise<Job> {
+  async updateJob(
+    jobId: bigint,
+    employerId: bigint,
+    dto: UpdateJobDto,
+  ): Promise<Job> {
     try {
       const data: Prisma.JobUpdateInput = {};
 
-      if (dto.jobCategoryId) data.JobCategory = { connect: { id: BigInt(dto.jobCategoryId) } };
-      if (dto.locationId) data.location = { connect: { id: BigInt(dto.locationId) } };
+      if (dto.jobCategoryId) {
+        data.JobCategory = { connect: { id: BigInt(dto.jobCategoryId) } };
+      }
+      if (dto.locationId) {
+        data.location = { connect: { id: BigInt(dto.locationId) } };
+      }
 
-      // Replace all screening questions if provided
       if (dto.screeningQuestions) {
         data.screeningQuestions = {
           deleteMany: {},
@@ -117,43 +137,100 @@ export class JobService {
         };
       }
 
-      // Copy other fields
       for (const key of Object.keys(dto)) {
         if (!['jobCategoryId', 'locationId', 'screeningQuestions'].includes(key)) {
           (data as any)[key] = (dto as any)[key];
         }
       }
 
-      // Update job
       const job = await this.repo.updateJob(jobId, employerId, data);
       return this.serialize(job);
     } catch (err) {
       console.error('Failed to update job:', err);
+
+      if (err instanceof NotFoundException || err instanceof UnauthorizedException) {
+        throw err;
+      }
+
       throw new InternalServerErrorException('Failed to update job');
     }
   }
 
   /** ================= Change Job Status ================= */
-  async changeStatus(jobId: bigint, employerId: bigint, dto: ChangeJobStatusDto): Promise<Job> {
+  async changeStatus(
+    jobId: bigint,
+    employerId: bigint,
+    dto: ChangeJobStatusDto,
+  ): Promise<Job> {
     try {
-      const job = await this.repo.changeJobStatus(jobId, employerId, dto.status as JobStatus);
+      const job = await this.repo.changeJobStatus(
+        jobId,
+        employerId,
+        dto.status as JobStatus,
+      );
       return this.serialize(job);
     } catch (err) {
       console.error('Failed to change job status:', err);
+
+      if (err instanceof NotFoundException || err instanceof UnauthorizedException) {
+        throw err;
+      }
+
       throw new InternalServerErrorException('Failed to change job status');
     }
   }
 
   /** ================= Get Jobs by Employer ================= */
-  async getJobsByEmployer(employerId: bigint): Promise<Job[]> {
-    const jobs = await this.repo.listEmployerJobs(employerId);
-    return this.serialize(jobs);
+  async getJobsByEmployer(userId: bigint): Promise<any[]> {
+    try {
+      // 1️⃣ Resolve employerId from userId
+      const employer = await this.repo.findEmployerByUserId(userId);
+      if (!employer) throw new NotFoundException('Employer profile not found');
+
+      console.log(
+        `[Service] Resolved EmployerId: ${employer.id} for UserId: ${userId}`,
+      );
+
+      // 2️⃣ Get jobs using employerId
+      const jobs: Job[] = await this.repo.listEmployerJobs(employer.id);
+
+      console.log(`[Service] Jobs fetched: ${jobs.length}`);
+
+      return deepSerialize(jobs); // ✅ BigInt -> string
+    } catch (err) {
+      console.error('Failed to fetch jobs for employer:', err);
+
+      if (err instanceof NotFoundException || err instanceof UnauthorizedException) {
+        throw err;
+      }
+
+      throw new InternalServerErrorException('Failed to fetch jobs for employer');
+    }
   }
 
   /** ================= Get Job by ID ================= */
-  async getJob(jobId: bigint, employerId: bigint): Promise<Job> {
-    const job = await this.repo.findJobById(jobId, employerId);
-    if (!job) throw new NotFoundException('Job not found');
-    return this.serialize(job);
+  async getJob(jobId: bigint, userId: bigint): Promise<any> {
+    try {
+      // 1️⃣ Get employerId from userId
+      const employer = await this.repo.findEmployerByUserId(userId);
+      if (!employer) throw new NotFoundException('Employer profile not found');
+
+      // 2️⃣ Fetch job by jobId + employerId
+      const job: Job | null = await this.repo.findJobById(jobId, employer.id);
+      if (!job) throw new NotFoundException('Job not found');
+
+      console.log(`[Service] Job fetched: ${job.title} (EmployerId: ${job.employerId})`);
+
+      return deepSerialize(job);
+    } catch (err) {
+      console.error('Failed to fetch job:', err);
+
+      if (err instanceof NotFoundException || err instanceof UnauthorizedException) {
+        throw err;
+      }
+
+      throw new InternalServerErrorException('Failed to fetch job');
+    }
   }
+
 }

@@ -1,3 +1,4 @@
+// src/modules/jobs/employer/job.controller.ts
 import {
   Controller,
   Get,
@@ -6,7 +7,9 @@ import {
   Query,
   Body,
   UseGuards,
+  Req,
 } from '@nestjs/common';
+import type { Request } from 'express';
 import { JobService } from '@modules/jobs/employer/job.service';
 import { JwtAuthGuard } from '@app/core/guards/jwt-auth.guard';
 import { RolesGuard } from '@app/core/guards/roles.guard';
@@ -21,7 +24,7 @@ import { ChangeJobStatusDto } from '@modules/jobs/employer/dtos/change-status.dt
 @Roles(UserRole.EMPLOYER)
 @Controller('employer/jobs')
 export class JobController {
-  constructor(private readonly jobService: JobService) { }
+  constructor(private readonly jobService: JobService) {}
 
   private parseBigInt(value?: string, name?: string): bigint {
     if (!value) throw new Error(`${name ?? 'ID'} missing`);
@@ -32,39 +35,49 @@ export class JobController {
     }
   }
 
+  /** ================= Create Job ================= */
   @Post()
-  async create(
-    @Query('employerId') employerId: string,
-    @Body() dto: CreateJobDto,
-  ) {
-    const id = this.parseBigInt(employerId, 'employerId');
-    return await this.jobService.createJob(id, dto);
+  async create(@Body() dto: CreateJobDto, @Req() req: Request) {
+    const userId = BigInt(req.user['sub']); // ✅ from JWT
+    return await this.jobService.createJob(userId, dto);
   }
 
+  /** ================= Update Job ================= */
   @Patch()
-  async update(@Query('jobId') jobId: string, @Body() dto: UpdateJobDto) {
-    const id = this.parseBigInt(jobId, 'jobId');
-    return await this.jobService.updateJob(id, dto);
+  async update(
+    @Query('jobId') jobId: string,
+    @Body() dto: UpdateJobDto,
+    @Req() req: Request,
+  ) {
+    const jId = this.parseBigInt(jobId, 'jobId');
+    const userId = BigInt(req.user['sub']); // ✅ from JWT
+    return await this.jobService.updateJob(jId, userId, dto);
   }
 
+  /** ================= Change Job Status ================= */
   @Patch('status')
   async changeStatus(
     @Query('jobId') jobId: string,
     @Body() dto: ChangeJobStatusDto,
+    @Req() req: Request,
   ) {
-    const id = this.parseBigInt(jobId, 'jobId');
-    return await this.jobService.changeStatus(id, dto);
+    const jId = this.parseBigInt(jobId, 'jobId');
+    const userId = BigInt(req.user['sub']); // ✅ from JWT
+    return await this.jobService.changeStatus(jId, userId, dto);
   }
 
+  /** ================= Get Jobs by Employer ================= */
   @Get('employer')
-  async getByEmployer(@Query('employerId') employerId: string) {
-    const id = this.parseBigInt(employerId, 'employerId');
-    return await this.jobService.getJobsByEmployer(id);
+  async getByEmployer(@Req() req: Request) {
+    const userId = BigInt(req.user['sub']); // ✅ from JWT
+    return await this.jobService.getJobsByEmployer(userId);
   }
 
+  /** ================= Get Job by ID ================= */
   @Get()
-  async getJob(@Query('jobId') jobId: string) {
-    const id = this.parseBigInt(jobId, 'jobId');
-    return await this.jobService.getJob(id);
+  async getJob(@Query('jobId') jobId: string, @Req() req: Request) {
+    const jId = this.parseBigInt(jobId, 'jobId');
+    const userId = BigInt(req.user['sub']); // ✅ from JWT
+    return await this.jobService.getJob(jId, userId);
   }
 }
